@@ -10,41 +10,14 @@
 
 #include <vector>
 #include <string>
-#include "IDAStar.h"
-
-std::vector<char> getTileArray(std::string* tileOrder);
 
 class PuzzleSolver {
-
-	static int dimension;
-	static int numOfTiles;
-	static int numOfTilesMinusOne;
-	static uint64_t goalState;
-	static uint64_t goalStatePositions;
-
-	static void initializeGoalState(int numOfTiles);
-	static void loadStreamCostTable(const std::string filename, char* costTable,
-			int size);
-
+	std::vector<std::string> directions;
 public:
-	static IDAStar algorithm;
-	static bool isVerbose;
-	static char* costTable_15_puzzle_0;
-	static char* costTable_15_puzzle_1;
-	static char* costTable_15_puzzle_2;
-
-	static void setVerbose(bool b);
-	static bool getVerbose();
-
-	static void initialize(int n);
-
-	static int getDimension();
-	static int getNumOfTiles();
-	static uint64_t getGoalState();
-	static uint64_t getGoalStatePositions();
-	static IDAStar getAlgorithm();
+	std::vector<std::string> getSolution(void);
 	PuzzleSolver();
-	PuzzleSolver(std::vector<char> state);
+	PuzzleSolver(std::vector<char> state, int threadCount);
+
 	virtual ~PuzzleSolver();
 };
 

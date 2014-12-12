@@ -26,12 +26,13 @@ class Node {
     //   The rest are in subset 2
     const static int tileSubsets[];// = {-1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2, 2};
 
-public:
-    static uint64_t moveUp(uint64_t boardConfig, uint64_t posOfSpace);
-    static uint64_t moveLeft(uint64_t boardConfig, uint64_t posOfSpace);
-    static uint64_t moveRight(uint64_t boardConfig, uint64_t posOfSpace);
-    static uint64_t moveDown(uint64_t boardConfig, uint64_t posOfSpace);
 
+
+
+
+
+
+public:
 
     static int dimension, numOfTiles, numOfTilesMinusOne;
 

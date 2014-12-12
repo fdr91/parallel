@@ -17,7 +17,11 @@ class DFSWorker {
     int depth, pos, yieldCount;
     bool solved;
     char fromDirection;
-    char* path = new char[81];
+    std::string path;
+
+
+
+
 
     void depthFirstSearch(const uint64_t currentState,
                                   const char fromDirection,
