@@ -49,7 +49,8 @@ public:
 	static int initialMovesEstimate;
 	static int movesRequired;
 	static bool running, solved;
-	static std::string shortestPath;
+	//static std::string shortestPath;
+	static char shortestPath[256];
 
 	static float getRunningTimeInSeconds();
 

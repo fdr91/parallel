@@ -13,6 +13,7 @@
 #include <mqueue.h>
 #include <hashtable.h>
 #include <map>
+#include <cstring>
 
 #define QNAME "qqq1"
 
@@ -29,9 +30,10 @@ bool IDAStar::solved;
 bool IDAStar::running;
 volatile uint64_t IDAStar::numberVisited;
 volatile uint64_t IDAStar::numberExpanded;
-string IDAStar::shortestPath;
+//string IDAStar::shortestPath;
 int IDAStar::initialMovesEstimate;
 int IDAStar::movesRequired;
+char IDAStar::shortestPath[];
 
 void IDAStar::initialize() {
 	startTime = clock();
@@ -40,7 +42,7 @@ void IDAStar::initialize() {
 	numberVisited = 0;
 	numberExpanded = 0;
 	/*string str;-*/
-	shortestPath.clear();
+	memset(shortestPath, 0, sizeof(shortestPath));
 	initialMovesEstimate = 0;
 	movesRequired = 0;
 }
@@ -51,7 +53,11 @@ void IDAStar::markEndTime() {
 
 void IDAStar::completeBFS(BFSNode node) {
 	solved = true;
-	shortestPath = node.getShortestPath();
+	string sp = node.getShortestPath();
+	memset(shortestPath, 0, sizeof(shortestPath));
+	for(int i=0; i<sp.size(); i++){
+		shortestPath[i] = sp.at(i);
+	}
 	if (PuzzleConfiguration::getVerbose()) {
 		cout << "done." << endl;
 	}

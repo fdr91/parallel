@@ -33,9 +33,10 @@ int main(int argc, char** argv) {
 			cout << (int) *iter << " " << endl;*/
 
 		PuzzleSolver ps(tiles, 1);
-		PuzzleSolver ps1(tiles, 1);
+		PuzzleSolver ps1(tiles, 2);
 		std::vector<std::string> directions = ps.getSolution();
 		std::vector<std::string> directions1 = ps1.getSolution();
+
 		for (int i = 0; i < (int)directions.size(); ++i) {
 			if (!directions.at(i).compare(directions1.at(i)) == 0) {
 				cerr << "wrong_answer\n" << "i=" << i;

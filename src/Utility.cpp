@@ -14,6 +14,7 @@
 #include <algorithm>    // std::swap
 #include <iostream>
 #include <stdlib.h>
+#include <cstring>
 #include "PuzzleConfiguration.h"
 
 using namespace std;
@@ -160,14 +161,14 @@ char* getMovedTiles(string pathStr, std::vector<char> initState, char* movedTile
 }
 
 std::vector<string> getDirections(std::vector<char> initState){
-	const int pathLength = IDAStar::shortestPath.length();
+	const int pathLength = strlen(IDAStar::shortestPath);
 	std::vector<string> directions;
 	if (pathLength != 0) {
 		char tiles[pathLength];
 		getMovedTiles(IDAStar::shortestPath, initState, tiles);
 		for (int i = 0; i < pathLength; ++i) {
 			const char tile = tiles[i];
-			const char dir = IDAStar::shortestPath.at(i);
+			const char dir = IDAStar::shortestPath[i];
 			string direction;
 			if (dir == 'L') {
 				direction = "right";
@@ -208,7 +209,7 @@ void displayStats(std::vector<char> initState) {
 	//cout<<
 			//"States explored:      "
 		//			+ INT_FORMATTER.format(IDAStar.numberExpanded));
-	const int numOfMoves = IDAStar::shortestPath.length();
+	const int numOfMoves = strlen(IDAStar::shortestPath);
 	if (numOfMoves == 1) {
 		cout<<"Shortest path:        " << numOfMoves <<" move";
 	} else {

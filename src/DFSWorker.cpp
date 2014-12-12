@@ -29,7 +29,9 @@ DFSWorker::DFSWorker() {
         IDAStar::numberVisited += numberVisited;
         IDAStar::numberExpanded += numberExpanded;
         if (solved) {
-        	IDAStar::shortestPath=path;
+
+        	for(int i=strlen(path); i>0; i--)
+        		IDAStar::shortestPath[i-1]=path[i];
         }
     }
 
@@ -45,10 +47,12 @@ void DFSWorker::setConfig(const uint64_t currentState,
         this->currentState = currentState;
         this->depth = depth;
         this->pos = pos;
+        this->solved=false;
         // It's not necessary to initialize path elements each time this method
         // is called, since subsequent paths will always be uint64_ter by 2 moves.
-        path=pathStr;
-        fromDirection = path[path.length()-1];
+        memset(path,0,sizeof(path));
+        path[0]=pathStr.at(0);
+        fromDirection = path[0];
         numberVisited = numberExpanded = yieldCount = 0;
     }
 

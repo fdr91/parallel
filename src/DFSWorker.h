@@ -17,7 +17,7 @@ class DFSWorker {
     int depth, pos, yieldCount;
     bool solved;
     char fromDirection;
-    std::string path;
+    char path[256];
 
 
 
