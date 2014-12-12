@@ -132,11 +132,13 @@ void IDAStar::solveMultyThreaded(const uint64_t currentState, int threadCount) {
 	sprintf(buffer, "Multy thread solving with thread count = %d\n",
 			threadCount);
 	cout << buffer;
+	findStartingPositions(currentState, threadCount);
 	initialMovesEstimate = movesRequired = Node::h(currentState);
-	workers = new DFSWorker[1];
+	workers = new DFSWorker[threadCount];
 	DFSWorker dfsWorker;
 	// Add to array so GUI can poll it for the stats in real time.
-	workers[0] = dfsWorker;
+	for(int i =0; i<threadCount; i++)
+		workers[i] = dfsWorker;
 	do {
 		if (PuzzleConfiguration::isVerbose) {
 			cout << "\nSearching paths of depth " << movesRequired << "..."
@@ -148,6 +150,7 @@ void IDAStar::solveMultyThreaded(const uint64_t currentState, int threadCount) {
 			movesRequired += 2;
 		}
 	} while (running);
+	delete workers;
 	//solveSingleThreaded(currentState);
 }
 
@@ -194,7 +197,7 @@ void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
 		}
 		if (fromDirection != 'L') {
 			BFSNode right;
-			right = currentNode.moveRightNode(NULL, &right);
+			currentNode.moveRightNode(NULL, &right);
 			if (!right.isNull) {
 				++numberExpanded;
 				if (right.boardConfig == Node::goalState) {
@@ -205,6 +208,7 @@ void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
 				}
 			}
 		}
+
 		if (fromDirection != 'D') {
 			BFSNode up;
 			currentNode.moveUpNode(NULL, &up);
@@ -218,10 +222,11 @@ void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
 				}
 			}
 		}
+
 		if (fromDirection != 'U') {
 			BFSNode down;
 			currentNode.moveDownNode(NULL, &down);
-			if (down.isNull) {
+			if (!down.isNull) {
 				++numberExpanded;
 				if (down.boardConfig == Node::goalState) {
 					completeBFS(down);
@@ -231,6 +236,7 @@ void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
 				}
 			}
 		}
+
 
 		currentNode = queue.front();
 		if (!currentNode.isNull) {

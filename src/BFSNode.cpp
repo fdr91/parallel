@@ -81,27 +81,27 @@ int BFSNode::posOfSpaceF() {
 bool BFSNode::moveLeftNode(const bool* tilesInSubset, BFSNode* ret) {
 	const int posOfSpace = posOfSpaceF();
 	if (posOfSpace % dimension == 0) {
+		ret->isNull = true;
 		return false;
 	}
 	cp(ret);
-	BFSNode copy = *ret;
 
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posMinusOneTimes4 = (posOfSpace - 1)
 			<< 2;
-	const uint64_t space = (copy.boardConfig >> posTimes4) & 0xF, tile =
-			(copy.boardConfig >> posMinusOneTimes4) & 0xF;
+	const uint64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
+			(ret->boardConfig >> posMinusOneTimes4) & 0xF;
 
 	const uint64_t zeroBitTile = (uint64_t) 0xF << posMinusOneTimes4;
-	copy.boardConfig = copy.boardConfig & ~zeroBitTile | (tile << posTimes4)
+	ret->boardConfig = ret->boardConfig & ~zeroBitTile | (tile << posTimes4)
 			| (space << posMinusOneTimes4);
-	copy.direction = 'L';
+	ret->direction = 'L';
 	if (storePath) {
-		copy.path += ('L');
+		ret->path += ('L');
 	}
 
 	if (tilesInSubset == NULL || tilesInSubset[(int) tile]) {
-		++copy.cost;
+		++ret->cost;
 	}
 
 	return true;
@@ -125,82 +125,82 @@ bool BFSNode::moveRightNode(const bool* tilesInSubset, BFSNode* ret) {
 		return false;
 	}
 	cp(ret);
-	BFSNode copy = *ret;
+
 
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posPlusOneTimes4 = posPlusOne << 2;
-	const uint64_t space = (copy.boardConfig >> posTimes4) & 0xF, tile =
-			(copy.boardConfig >> posPlusOneTimes4) & 0xF;
+	const uint64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
+			(ret->boardConfig >> posPlusOneTimes4) & 0xF;
 
 	const uint64_t zeroBitTile = (uint64_t) 0xF << posPlusOneTimes4;
-	copy.boardConfig = copy.boardConfig & ~zeroBitTile | (tile << posTimes4)
+	ret->boardConfig = ret->boardConfig & ~zeroBitTile | (tile << posTimes4)
 			| (space << posPlusOneTimes4);
-	copy.direction = 'R';
+	ret->direction = 'R';
 	if (storePath) {
-		copy.path += ('R');
+		ret->path += ('R');
 	}
 
 	if (tilesInSubset == NULL || tilesInSubset[(int) tile]) {
-		++copy.cost;
+		++ret->cost;
 	}
-
+	ret->isNull=false;
 	return true;
 }
 
 bool BFSNode::moveUpNode(const bool* tilesInSubset, BFSNode* ret) {
 	const int posOfSpace = posOfSpaceF();
 	if (posOfSpace < dimension) {
+		ret ->isNull=true;
 		return false;
 	}
 	cp(ret);
-	BFSNode copy = *ret;
 
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posMinusDimTimes4 = (posOfSpace
 			- dimension) << 2;
-	const uint64_t space = (copy.boardConfig >> posTimes4) & 0xF, tile =
-			(copy.boardConfig >> posMinusDimTimes4) & 0xF;
+	const uint64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
+			(ret->boardConfig >> posMinusDimTimes4) & 0xF;
 
 	const uint64_t zeroBitTile = (uint64_t) 0xF << posMinusDimTimes4;
-	copy.boardConfig = copy.boardConfig & ~zeroBitTile | (tile << posTimes4)
+	ret->boardConfig = ret->boardConfig & ~zeroBitTile | (tile << posTimes4)
 			| (space << posMinusDimTimes4);
-	copy.direction = 'U';
+	ret->direction = 'U';
 	if (storePath) {
-		copy.path += ('U');
+		ret->path += ('U');
 	}
 
 	if (tilesInSubset == NULL || tilesInSubset[(int) tile]) {
-		++copy.cost;
+		++ret->cost;
 	}
-
+	ret ->isNull=false;
 	return true;
 }
 
 bool BFSNode::moveDownNode(const bool* tilesInSubset, BFSNode* ret) {
 	const int posOfSpace = posOfSpaceF();
 	if (posOfSpace >= numOfTiles - dimension) {
+		ret->isNull=true;
 		return false;
 	}
 	cp(ret);
-	BFSNode copy = *ret;
 
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posPlusDimTimes4 = (posOfSpace
 			+ dimension) << 2;
-	const uint64_t space = (copy.boardConfig >> posTimes4) & 0xF, tile =
-			(copy.boardConfig >> posPlusDimTimes4) & 0xF;
+	const uint64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
+			(ret->boardConfig >> posPlusDimTimes4) & 0xF;
 
 	const uint64_t zeroBitTile = (uint64_t) 0xF << posPlusDimTimes4;
-	copy.boardConfig = copy.boardConfig & ~zeroBitTile | (tile << posTimes4)
+	ret->boardConfig = ret->boardConfig & ~zeroBitTile | (tile << posTimes4)
 			| (space << posPlusDimTimes4);
-	copy.direction = 'D';
+	ret->direction = 'D';
 	if (storePath) {
-		copy.path += ('D');
+		ret->path += ('D');
 	}
 
 	if (tilesInSubset == NULL || tilesInSubset[(int) tile]) {
-		++copy.cost;
+		++ret->cost;
 	}
-
+	ret->isNull=false;
 	return true;
 }
