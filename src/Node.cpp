@@ -9,7 +9,7 @@
 
 #include <stdexcept>
 
-#include "PuzzleSolver.h"
+#include "PuzzleConfiguration.h"
 
 using std::invalid_argument;
 
@@ -25,11 +25,11 @@ uint64_t Node::goalState;
 uint64_t Node::goalStatePositions;
 
 void Node::initialize() {
-	dimension = PuzzleSolver::getDimension();
-	numOfTiles = PuzzleSolver::getNumOfTiles();
+	dimension = PuzzleConfiguration::getDimension();
+	numOfTiles = PuzzleConfiguration::getNumOfTiles();
 	numOfTilesMinusOne = Node::numOfTiles - 1;
-	goalState = PuzzleSolver::getGoalState();
-	goalStatePositions = PuzzleSolver::getGoalStatePositions();
+	goalState = PuzzleConfiguration::getGoalState();
+	goalStatePositions = PuzzleConfiguration::getGoalStatePositions();
 
 }
 
@@ -56,9 +56,9 @@ int Node::h(const uint64_t boardConfig) {
 				}
 			}
 		}
-		return PuzzleSolver::costTable_15_puzzle_0[index0]
-					+ PuzzleSolver::costTable_15_puzzle_1[index1]
-					+ PuzzleSolver::costTable_15_puzzle_2[index2];
+		return PuzzleConfiguration::costTable_15_puzzle_0[index0]
+					+ PuzzleConfiguration::costTable_15_puzzle_1[index1]
+					+ PuzzleConfiguration::costTable_15_puzzle_2[index2];
 	}
 	else throw invalid_argument("Wrong puzzle size");
 	return 0;
@@ -72,66 +72,3 @@ int Node::posOfSpace(const uint64_t boardConfig) {
     }
     return -1;
 }
-
-uint64_t Node::moveUp(uint64_t boardConfig, uint64_t posOfSpace) {
-	if (posOfSpace < Node::dimension) {
-		return 0;
-	}
-	// Swap tile with space.
-	const uint64_t posTimes4 = posOfSpace << 2, posMinusDimTimes4 = (posOfSpace
-			- Node::dimension) << 2;
-	const uint64_t space = (boardConfig >> posTimes4) & 0xF, tile = (boardConfig
-			>> posMinusDimTimes4) & 0xF;
-
-	const uint64_t zeroBitTile = (uint64_t) 0xF << posMinusDimTimes4;
-	uint64_t ret =(boardConfig & ~zeroBitTile) | (tile << posTimes4)
-			| (space << posMinusDimTimes4);
-	return ret;
-}
-uint64_t Node::moveDown(uint64_t boardConfig, uint64_t posOfSpace) {
-    if (posOfSpace >= Node::numOfTiles - Node::dimension) {
-        return 0;
-    }
-    // Swap tile with space.
-    const uint64_t posTimes4 = posOfSpace << 2,
-              posPlusDimTimes4 = (posOfSpace + Node::dimension) << 2;
-    const uint64_t space = (boardConfig >> posTimes4) & 0xF,
-               tile = (boardConfig >> posPlusDimTimes4) & 0xF;
-
-    const uint64_t zeroBitTile = (uint64_t)0xF << posPlusDimTimes4;
-    uint64_t ret=(boardConfig & ~zeroBitTile) | (tile << posTimes4) |
-           (space << posPlusDimTimes4);
-    return ret;
-}
-uint64_t Node::moveLeft(uint64_t boardConfig, uint64_t posOfSpace) {
-	if (posOfSpace % Node::dimension == 0) {
-		return 0;
-	}
-	// Swap tile with space.
-	const uint64_t posTimes4 = posOfSpace << 2, posMinusOneTimes4 = (posOfSpace
-			- 1) << 2;
-	const uint64_t space = (boardConfig >> posTimes4) & 0xF, tile = (boardConfig
-			>> posMinusOneTimes4) & 0xF;
-
-	const uint64_t zeroBitTile = (uint64_t) 0xF << posMinusOneTimes4;
-	uint64_t ret = (boardConfig & ~zeroBitTile) | (tile << posTimes4)
-			| (space << posMinusOneTimes4);
-	return ret;
-}
-uint64_t Node::moveRight(uint64_t boardConfig, uint64_t posOfSpace) {
-    const uint64_t posPlusOne = posOfSpace + 1;
-    if (posPlusOne % Node::dimension == 0) {
-        return 0;
-    }
-    // Swap tile with space.
-    const uint64_t posTimes4 = posOfSpace << 2,
-              posPlusOneTimes4 = posPlusOne << 2;
-    const uint64_t space = (boardConfig >> posTimes4) & 0xF,
-               tile = (boardConfig >> posPlusOneTimes4) & 0xF;
-
-    const uint64_t zeroBitTile = (uint64_t)0xF << posPlusOneTimes4;
-    uint64_t ret = (boardConfig & ~zeroBitTile) | (tile << posTimes4) |
-            (space << posPlusOneTimes4);
-    return ret;
-}
-

@@ -8,37 +8,33 @@
 #include "DFSWorker.h"
 #include "Node.h"
 #include "IDAStar.h"
-
+#include  "IDAStarNode.h"
 #include <iostream>
-#include "PuzzleSolver.h"
+#include <cstring>
+#include "PuzzleConfiguration.h"
 
 using namespace std;
 
 
 DFSWorker::DFSWorker() {
-	solved=false;
-	numberVisited=0;
-	currentState =0;
-	depth=0;
-	fromDirection=0;
-	movesRequired=0;
-	numberExpanded=0;
-	pos=0;
-	yieldCount=0;
 }
 
-string DFSWorker::getShortestPath() {
+/*char* DFSWorker::getShortestPath() {
 		//TODO
         return string(path).substr(1);
-    }
+    }*/
 
- void DFSWorker::run() {
+void DFSWorker::run() {
+		printf("DFSWorker start run\n");
         depthFirstSearch(currentState, fromDirection, depth, pos);
         IDAStar::numberVisited += numberVisited;
         IDAStar::numberExpanded += numberExpanded;
         if (solved) {
-            IDAStar::shortestPath = getShortestPath();
+        	 printf("---Solved--- %d\n", strlen(path));
+        	for(int i=strlen(path); i>0; i--)
+        		IDAStar::shortestPath[i-1]=path[i];
         }
+        printf("DFSWorker finish run\n");
     }
 
 
@@ -53,13 +49,12 @@ void DFSWorker::setConfig(const uint64_t currentState,
         this->currentState = currentState;
         this->depth = depth;
         this->pos = pos;
-        int i = 0;
+        this->solved=false;
         // It's not necessary to initialize path elements each time this method
         // is called, since subsequent paths will always be uint64_ter by 2 moves.
-        for (const int len = pathStr.length(); i < len; ++i) {
-            path[i] = pathStr.at(i);
-        }
-        fromDirection = path[i - 1];
+        memset(path,0,sizeof(path));
+        path[0]=pathStr.at(0);
+        fromDirection = path[0];
         numberVisited = numberExpanded = yieldCount = 0;
     }
 
@@ -75,7 +70,7 @@ void DFSWorker::setConfig(const uint64_t currentState,
             IDAStar::running = false;
             path[pos] = fromDirection;
             solved = true;
-            if (PuzzleSolver::getVerbose()) {
+            if (PuzzleConfiguration::getVerbose()) {
                 std::cout<<"done."<<std::endl;
             }
             return;
@@ -85,7 +80,7 @@ void DFSWorker::setConfig(const uint64_t currentState,
                   posPlusOne = pos + 1;
 
         if (fromDirection != 'R') {
-            const uint64_t successor = Node::moveLeft(currentState, posOfSpace);
+            const uint64_t successor = IDAStarNode::moveLeft(currentState, posOfSpace);
             if (successor != 0) {
                 ++numberExpanded;
                 if (posPlusOne + Node::h(successor) <= depth) {
@@ -101,7 +96,7 @@ void DFSWorker::setConfig(const uint64_t currentState,
         }
 
         if (fromDirection != 'L') {
-            const uint64_t successor = Node::moveRight(currentState, posOfSpace);
+            const uint64_t successor = IDAStarNode::moveRight(currentState, posOfSpace);
             if (successor != 0) {
                 ++numberExpanded;
                 if (posPlusOne + Node::h(successor) <= depth) {
@@ -117,7 +112,7 @@ void DFSWorker::setConfig(const uint64_t currentState,
         }
 
         if (fromDirection != 'D') {
-            uint64_t successor = Node::moveUp(currentState, posOfSpace);
+            uint64_t successor = IDAStarNode::moveUp(currentState, posOfSpace);
             if (successor != 0) {
                 ++numberExpanded;
                 if (posPlusOne + Node::h(successor) <= depth) {
@@ -133,7 +128,7 @@ void DFSWorker::setConfig(const uint64_t currentState,
         }
 
         if (fromDirection != 'U') {
-            uint64_t successor = Node::moveDown(currentState, posOfSpace);
+            uint64_t successor = IDAStarNode::moveDown(currentState, posOfSpace);
             if (successor != 0) {
                 ++numberExpanded;
                 if (posPlusOne + Node::h(successor) <= depth) {
