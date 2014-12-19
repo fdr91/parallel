@@ -47,7 +47,7 @@ void BoardState::getTileArray(std::string* tileOrder, std::vector<char> *tileArr
 	vector<string> tokens;// = stringSplit(*tileOrder, ",");
 	istringstream f(*tileOrder);
 	string s;
-	while(getline(f, s, ';')){
+	while(getline(f, s, ',')){
 		tokens.push_back(s);
 	}
 
@@ -74,6 +74,18 @@ int64_t BoardState::arrayToLong(std::vector<char> state) {
 	return value;
 }
 
+BoardState::BoardState(const BoardState& v) {
+	this->state = v.state;
+}
+
+int BoardState::posOfSpace(){
+    for (int i = 16 - 1; i >= 0; --i) {
+        if (((this->state >> (i << 2)) & 0xF) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 BoardState::BoardState(std::string str){
 	std::vector<char> tileArray;
@@ -81,6 +93,85 @@ BoardState::BoardState(std::string str){
 	this->state=arrayToLong(tileArray);
 }
 
+
+BoardState::BoardState(const char* cstr){
+	string str(cstr);
+	std::vector<char> tileArray;
+	getTileArray(&str, &tileArray);
+	this->state=arrayToLong(tileArray);
+}
+
+
 BoardState::~BoardState() {
 }
 
+BoardState BoardState::moveUp() {
+	int64_t spaceP = posOfSpace();
+	if (spaceP < 4) {
+		return BoardState((int64_t)0);
+	}
+	// Swap tile with space.
+	const uint64_t posTimes4 = spaceP << 2, posMinusDimTimes4 = (spaceP
+			- 4) << 2;
+	const uint64_t space = (state >> posTimes4) & 0xF, tile = (state
+			>> posMinusDimTimes4) & 0xF;
+
+	const uint64_t zeroBitTile = (uint64_t) 0xF << posMinusDimTimes4;
+	uint64_t ret =(state & ~zeroBitTile) | (tile << posTimes4)
+			| (space << posMinusDimTimes4);
+	return BoardState(ret);
+}
+BoardState BoardState::moveDown() {
+	int64_t spaceP = posOfSpace();
+    if (spaceP >= size- 4) {
+        return BoardState((int64_t)0);
+    }
+    // Swap tile with space.
+    const uint64_t posTimes4 = spaceP << 2,
+              posPlusDimTimes4 = (spaceP + 4) << 2;
+    const uint64_t space = (state >> posTimes4) & 0xF,
+               tile = (state >> posPlusDimTimes4) & 0xF;
+
+    const uint64_t zeroBitTile = (uint64_t)0xF << posPlusDimTimes4;
+    uint64_t ret=(state & ~zeroBitTile) | (tile << posTimes4) |
+           (space << posPlusDimTimes4);
+    return BoardState(ret);
+}
+BoardState BoardState::moveLeft() {
+	int64_t spaceP = posOfSpace();
+	if (spaceP % 4  == 0) {
+		return BoardState((int64_t)0);
+	}
+	// Swap tile with space.
+	const uint64_t posTimes4 = spaceP << 2, posMinusOneTimes4 = (spaceP
+			- 1) << 2;
+	const uint64_t space = (state >> posTimes4) & 0xF, tile = (state
+			>> posMinusOneTimes4) & 0xF;
+
+	const uint64_t zeroBitTile = (uint64_t) 0xF << posMinusOneTimes4;
+	uint64_t ret = (state & ~zeroBitTile) | (tile << posTimes4)
+			| (space << posMinusOneTimes4);
+	return BoardState(ret);
+}
+BoardState BoardState::moveRight() {
+	int64_t spaceP = posOfSpace();
+    const uint64_t posPlusOne = spaceP + 1;
+    if (posPlusOne % 4  == 0) {
+        return BoardState((int64_t)0);
+    }
+    // Swap tile with space.
+    const uint64_t posTimes4 = spaceP << 2,
+              posPlusOneTimes4 = posPlusOne << 2;
+    const uint64_t space = (state >> posTimes4) & 0xF,
+               tile = (state >> posPlusOneTimes4) & 0xF;
+
+    const uint64_t zeroBitTile = (uint64_t)0xF << posPlusOneTimes4;
+    uint64_t ret = (state & ~zeroBitTile) | (tile << posTimes4) |
+            (space << posPlusOneTimes4);
+    return BoardState(ret);
+
+}
+
+BoardState::BoardState(int64_t t){
+	this->state = t;
+}
