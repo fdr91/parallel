@@ -17,6 +17,8 @@
 #include <map>
 #include <queue>
 
+
+
 class IDAStar {
 	static void initialize();
 
@@ -29,17 +31,16 @@ class IDAStar {
 
 	static clock_t startTime, endTime;
 
-	void findStartingPositions(const uint64_t currentState, int numOfThreads);
+	void findStartingPositions(const int64_t currentState, int numOfThreads);
 
 	std::queue<BFSNode> queue;
-	int* flags;
-
 	void static openQueue(mqd_t&  q);
-	void putToQueue(BFSNode* node, std::map<uint64_t, BFSNode>* m);
+	void putToQueue(BFSNode* node, std::map<int64_t, BFSNode>* m);
 
 
 public:
-	volatile static uint64_t numberVisited, numberExpanded;
+	//static volatile bool running, solved;
+	volatile static int64_t numberVisited, numberExpanded;
 
 	IDAStar();
 	virtual ~IDAStar();
@@ -48,23 +49,20 @@ public:
 
 	static int initialMovesEstimate;
 	static int movesRequired;
-	static bool running, solved;
 	//static std::string shortestPath;
-	static char shortestPath[256];
+	static pthread_mutex_t running_mutex;
+	//static char shortestPath[256];
+	static std::vector<char> shortestPath;
 
 	static float getRunningTimeInSeconds();
 
 	static float getElapsedTimeInSeconds();
 
-	void solveSingleThreaded(const uint64_t currentState);
+	void solveSingleThreaded(const int64_t currentState);
 
-	void solveMultyThreaded(const uint64_t currentState, int threadCount);
+	void solveMultyThreaded(const int64_t currentState, int threadCount);
 
-	void solve(const uint64_t currentState, int threadCount);
-
-	void start();
-
-	void stop();
+	void solve(const int64_t currentState, int threadCount);
 
 };
 #endif /* IDASTAR_H_ */

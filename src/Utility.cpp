@@ -15,9 +15,13 @@
 #include <iostream>
 #include <stdlib.h>
 #include <cstring>
-#include "PuzzleConfiguration.h"
+#include <stdio.h>
+#include "IDAStar.h"
+#include "globals.h"
+
 
 using namespace std;
+
 
 std::vector<std::string> inline stringSplit(const std::string &source,
 		const char *delimiter = " ", bool keepEmpty = false) {
@@ -47,8 +51,10 @@ std::vector<char> getTileArray(std::string* tileOrder) {
 		throw invalid_argument("Wrong tiles");
 
 	std::vector<char> array;
-	for (string str : tokens) {
-		int val = atoi(str.c_str());
+	//std::vector<char>::iterator it = array.begin();
+	//while (string str : tokens) {
+	for(std::vector<string>::iterator it = tokens.begin(); it!=tokens.end(); it++){
+		int val = atoi((*it).c_str());
 		if (val > 15 || val < 0)
 			throw invalid_argument("Wrong tiles");
 		array.push_back((char) val);
@@ -60,13 +66,13 @@ std::vector<char> getTileArray(std::string* tileOrder) {
 	return array;
 }
 
-uint64_t getPositionsAsUint64_t(const uint64_t boardConfig,
+int64_t getPositionsAsint64_t(const int64_t boardConfig,
 		const int numOfTilesMinusOne) {
 	// Creates a long that maps tiles(i.e. array index) to position in puzzle.
-	uint64_t positions = 0;
+	int64_t positions = 0;
 	for (int pos = numOfTilesMinusOne; pos >= 0; --pos) {
 		const int tile = (int) ((boardConfig >> (pos << 2)) & 0xF);
-		positions |= ((uint64_t) pos << (tile << 2));
+		positions |= ((int64_t) pos << (tile << 2));
 	}
 	return positions;
 }
@@ -96,26 +102,27 @@ bool isValidPermutation(std::vector<char> state) {
 	return true;
 }
 
-uint64_t arrayToLong(std::vector<char> state) {
-	uint64_t value = 0;
+int64_t arrayToLong(std::vector<char> state) {
+	int64_t value = 0;
 	for (int i = 0; i < state.size(); ++i) {
-		value |= ((uint64_t) state[i] << (i << 2));
+		value |= ((int64_t) state[i] << (i << 2));
 	}
 	return value;
 }
 
-string byteArrayToString(std::vector<char> state){
-    int numOfTiles = state.size();
-    string builder;
-    for (int i = 0; i < numOfTiles; ++i) {
-        if (i != 0) {
-            builder.append(",");
-        }
-        char buf[4];
-        sprintf(buf, "%d", state[i]);
-        builder.append(buf);
-    }
-    return builder;
+char buf[5];
+
+string byteArrayToString(std::vector<char> state) {
+	int numOfTiles = state.size();
+	string builder;
+	for (int i = 0; i < numOfTiles; ++i) {
+		if (i != 0) {
+			builder.append(",");
+		}
+		sprintf(buf, "%d", state[i]);
+		builder.append(buf);
+	}
+	return builder;
 
 }
 
@@ -125,65 +132,110 @@ void swap(const int i, const int j, char* A) {
 	A[j] = temp;
 }
 
-char* getMovedTiles(string pathStr, std::vector<char> initState, char* movedTiles){
-	 const int pathLength = pathStr.length(),
-	                  boardLength = initState.size(),
-	                  dimension = PuzzleConfiguration::getDimension();
-	        //char movedTiles[pathLength];
-	        char boardConfig[boardLength];
+std::vector<char> getMovedTiles(std::vector<char> pathStr, std::vector<char> initState,
+		std::vector<char>& movedTiles) {
+	const int pathLength = pathStr.size(), boardLength = initState.size(),
+			dimension1 = DIMENSION;
+	//char movedTiles[pathLength];
+	//char* boardConfig = new char[boardLength];
+	std::vector<char> boardConfig;
 
-	        int posOfSpace = -1;
-	        for (int i = boardLength - 1; i >= 0; --i) {
-	            const char tile = initState[i];
-	            if (tile == 0) {
-	                posOfSpace = i;
-	            }
-	            boardConfig[i] = tile;
-	        }
-
-	        for (int i = 0; i < pathLength; ++i) {
-	            const char dir = pathStr.at(i);
-	            int posOfTile;
-	            if (dir == 'L') {
-	                posOfTile = posOfSpace - 1;
-	            } else if (dir == 'R') {
-	                posOfTile = posOfSpace + 1;
-	            } else if (dir == 'U') {
-	                posOfTile = posOfSpace - dimension;
-	            } else {
-	                posOfTile = posOfSpace + dimension;
-	            }
-	            movedTiles[i] = boardConfig[posOfTile];
-	            swap(posOfSpace, posOfTile, boardConfig);
-	            posOfSpace = posOfTile;
-	        }
-	        return movedTiles;
+	int posOfSpace = -1;
+	boardConfig.resize(boardLength);
+	for (int i = boardLength - 1; i >= 0; --i) {
+		const char tile = initState[i];
+		if (tile == 0) {
+			posOfSpace = i;
+		}
+		boardConfig[i] = tile;
+	}
+	//movedTiles.resize(pathLength);
+	movedTiles.clear();
+	for (int i = 0; i < pathLength; ++i) {
+		const char dir = pathStr.at(i);
+		int posOfTile;
+		if (dir == 'L') {
+			posOfTile = posOfSpace - 1;
+		} else if (dir == 'R') {
+			posOfTile = posOfSpace + 1;
+		} else if (dir == 'U') {
+			posOfTile = posOfSpace - dimension1;
+		} else {
+			posOfTile = posOfSpace + dimension1;
+		}
+		movedTiles.push_back(boardConfig[posOfTile]);
+		char tmp = boardConfig[posOfSpace];
+		boardConfig[posOfSpace] = boardConfig[posOfTile];
+		boardConfig[posOfTile]=tmp;
+		posOfSpace = posOfTile;
+	}
+	return movedTiles;
 }
 
-std::vector<string> getDirections(std::vector<char> initState){
-	const int pathLength = strlen(IDAStar::shortestPath);
+void getMovedTiles(std::vector<char> pathStr, std::vector<char> initState,	char* movedTiles) {
+	const int pathLength = pathStr.size(), boardLength = initState.size(),
+			dimension1 = DIMENSION;
+	//char movedTiles[pathLength];
+	//char* boardConfig = new char[boardLength];
+	std::vector<char> boardConfig;
+
+	int posOfSpace = -1;
+	boardConfig.resize(boardLength);
+	for (int i = boardLength - 1; i >= 0; --i) {
+		const char tile = initState[i];
+		if (tile == 0) {
+			posOfSpace = i;
+		}
+		boardConfig[i] = tile;
+	}
+	//movedTiles.resize(pathLength);
+	for (int i = 0; i < pathLength; ++i) {
+		const char dir = pathStr.at(i);
+		int posOfTile;
+		if (dir == 'L') {
+			posOfTile = posOfSpace - 1;
+		} else if (dir == 'R') {
+			posOfTile = posOfSpace + 1;
+		} else if (dir == 'U') {
+			posOfTile = posOfSpace - dimension1;
+		} else {
+			posOfTile = posOfSpace + dimension1;
+		}
+		movedTiles[i]=boardConfig[posOfTile];
+		char tmp = boardConfig[posOfSpace];
+		boardConfig[posOfSpace] = boardConfig[posOfTile];
+		boardConfig[posOfTile]=tmp;
+		posOfSpace = posOfTile;
+	}
+	return;
+}
+
+std::vector<string> getDirections(std::vector<char> initState) {
+	const int pathLength = IDAStar::shortestPath.size();
 	std::vector<string> directions;
 	if (pathLength != 0) {
-		char tiles[pathLength];
+		//char* tiles = new char[pathLength];
+		char* tiles = new char[IDAStar::shortestPath.size()-1];
 		getMovedTiles(IDAStar::shortestPath, initState, tiles);
 		for (int i = 0; i < pathLength; ++i) {
 			const char tile = tiles[i];
 			const char dir = IDAStar::shortestPath[i];
 			string direction;
 			if (dir == 'L') {
-				direction = "right";
+				direction = string("right");
 			} else if (dir == 'R') {
-				direction = "left";
+				direction= string("left");
 			} else if (dir == 'U') {
-				direction = "down";
+				direction = string("down");
 			} else {
-				direction = "up";
+				direction= string("up");
 			}
 			//const StringBuilder builder = new StringBuilder();
 			const int iPlusOne = i + 1;
-			char buffer[1024];
+			char* buffer= new char[1024];
 			sprintf(buffer, "%2d. %d - %s", iPlusOne, tile, direction.c_str());
-			directions.push_back((string)buffer);
+			directions.push_back(string(buffer));
+			delete [] buffer;
 		}
 	}
 	return directions;
@@ -192,31 +244,32 @@ std::vector<string> getDirections(std::vector<char> initState){
 void displayStats(std::vector<char> initState) {
 	const
 	int numOfTiles = initState.size();
-	cout<<endl;
-	cout<<"Puzzle type:          " <<(numOfTiles - 1)  << "-puzzle\n";
-	cout<<"Initial permutation:  ";
-	cout<<byteArrayToString(initState);
-	cout<<"\nGoal state:           ";
+	cout << endl;
+	cout << "Puzzle type:          " << (numOfTiles - 1) << "-puzzle\n";
+	cout << "Initial permutation:  ";
+	cout << byteArrayToString(initState);
+	cout << "\nGoal state:           ";
 	for (int i = 0; i < numOfTiles; ++i) {
 		if (i != 0) {
-			cout<<",";
+			cout << ",";
 		}
-		cout<<((PuzzleConfiguration::getGoalState() >> (i << 2)) & 0xF);
+		cout << ((GOAL_STATE >> (i << 2)) & 0xF);
 	}
-	cout<<endl;
+	cout << endl;
 	//cout<<	"Elapsed time:         " << DEC_FORMATTER.format(IDAStar.getRunningTimeInSeconds()) << " s";
 	//cout<<	"Paths visited:        "	+ INT_FORMATTER.format(IDAStar.numberVisited));
 	//cout<<
-			//"States explored:      "
-		//			+ INT_FORMATTER.format(IDAStar.numberExpanded));
-	const int numOfMoves = strlen(IDAStar::shortestPath);
+	//"States explored:      "
+	//			+ INT_FORMATTER.format(IDAStar.numberExpanded));
+	const int numOfMoves = IDAStar::shortestPath.size();
 	if (numOfMoves == 1) {
-		cout<<"Shortest path:        " << numOfMoves <<" move";
+		cout << "Shortest path1:        " << numOfMoves << " move";
 	} else {
-		cout<<"Shortest path:        " <<numOfMoves << " moves\n";
+		cout << "Shortest path1:        " << numOfMoves << " moves\n";
 	}
 	std::vector<string> directions = getDirections(initState);
 	for (int i = 0; i < directions.size(); ++i) {
-		cout<<directions[i]<<endl;
+		cout << directions[i] << endl;
 	}
+
 }

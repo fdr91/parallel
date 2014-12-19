@@ -19,8 +19,8 @@ public:
 */
 	std::vector<char> getTileArray(std::string* tileOrder);
 	bool isValidPermutation(std::vector<char> state);
-	uint64_t getPositionsAsUint64_t(const uint64_t boardConfig,const int numOfTilesMinusOne);
-	uint64_t arrayToLong(std::vector<char> state);
+	int64_t getPositionsAsint64_t(const int64_t boardConfig,const int numOfTilesMinusOne);
+	int64_t arrayToLong(std::vector<char> state);
 	void displayStats(std::vector<char> initState);
 	std::vector<std::string> getDirections(std::vector<char> initState);
 //};

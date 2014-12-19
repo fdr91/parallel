@@ -9,21 +9,23 @@
 #define DFSWORKER_H_
 
 #include <string>
+#include <stdint.h>
 
 class DFSWorker {
 
-	uint64_t currentState, numberVisited, numberExpanded;
+	int64_t currentState, numberVisited, numberExpanded;
 	int movesRequired;
     int depth, pos, yieldCount;
     bool solved;
     char fromDirection;
-    char path[256];
+    std::string path;
+
+    static int id;
+    int myId;
 
 
 
-
-
-    void depthFirstSearch(const uint64_t currentState,
+    void depthFirstSearch(const int64_t currentState,
                                   const char fromDirection,
                                   const int depth,
                                   const int pos);
@@ -31,7 +33,7 @@ class DFSWorker {
 public:
 
 
-    void setConfig(const uint64_t currentState,
+    void setConfig(const int64_t currentState,
                              const std::string pathStr,
                              const int depth,
                              const int pos);
@@ -40,7 +42,7 @@ public:
     std::string getShortestPath();
 
 	DFSWorker();
-	virtual ~DFSWorker();
+	~DFSWorker();
 };
 
 #endif /* DFSWORKER_H_ */

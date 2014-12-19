@@ -20,8 +20,8 @@ class BFSNode: public Node {
 	 bool isNull;*/
 public:
 	int serialize(char* buffer);
-	uint64_t getHash();
-	uint64_t boardConfig;
+	int64_t getHash();
+	int64_t boardConfig;
 	char direction = 'X';
 	int cost;
 	std::string path;
@@ -29,8 +29,8 @@ public:
 	bool isNull;
 	BFSNode();
 	virtual ~BFSNode();
-	BFSNode(const uint64_t boardConfig);
-	BFSNode(const uint64_t boardConfig, const bool storePath);
+	BFSNode(const int64_t boardConfig);
+	BFSNode(const int64_t boardConfig, const bool storePath);
 	BFSNode(const BFSNode* node);
 	int hashCode();
 	std::string getPath();

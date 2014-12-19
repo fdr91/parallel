@@ -15,9 +15,10 @@ class PuzzleSolver {
 	std::vector<std::string> directions;
 public:
 	std::vector<std::string> getSolution(void);
+	char* getSolutionChar(void);
 	PuzzleSolver();
 	PuzzleSolver(std::vector<char> state, int threadCount);
-
+	void getCharSSolution(char *solution, int size);
 	virtual ~PuzzleSolver();
 };
 

@@ -4,9 +4,8 @@
  *  Created on: Nov 14, 2014
  *      Author: fedor
  */
-
+#define _MULTI_THREADED
 #include "IDAStar.h"
-#include "PuzzleConfiguration.h"
 #include <iostream>
 #include <fcntl.h>           /* For O_* constants */
 #include <sys/stat.h>        /* For mode constants */
@@ -15,10 +14,17 @@
 #include <map>
 #include <cstring>
 #include <sstream>
+#include <stdio.h>
+#include <pthread.h>
+
+#include "globals.h"
 
 #define QNAME "qqq1"
 
 using namespace std;
+
+bool gruning=true;
+bool gsolved=false;
 
 IDAStar::IDAStar() {
 	// TODO Auto-generated constructor stub
@@ -27,23 +33,22 @@ IDAStar::IDAStar() {
 
 clock_t IDAStar::startTime;
 clock_t IDAStar::endTime;
-bool IDAStar::solved;
-bool IDAStar::running;
-volatile uint64_t IDAStar::numberVisited;
-volatile uint64_t IDAStar::numberExpanded;
-//string IDAStar::shortestPath;
+volatile int64_t IDAStar::numberVisited;
+volatile int64_t IDAStar::numberExpanded;
 int IDAStar::initialMovesEstimate;
 int IDAStar::movesRequired;
-char IDAStar::shortestPath[];
+std::vector<char> IDAStar::shortestPath;
+pthread_mutex_t IDAStar::running_mutex;
+
 
 void IDAStar::initialize() {
 	startTime = clock();
-	solved = false;
-	running = true;
+	gsolved = false;
+	gruning = true;
 	numberVisited = 0;
 	numberExpanded = 0;
 	/*string str;-*/
-	memset(shortestPath, 0, sizeof(shortestPath));
+	shortestPath.clear();
 	initialMovesEstimate = 0;
 	movesRequired = 0;
 }
@@ -53,13 +58,13 @@ void IDAStar::markEndTime() {
 }
 
 void IDAStar::completeBFS(BFSNode node) {
-	solved = true;
+	gsolved = true;
 	string sp = node.getShortestPath();
-	memset(shortestPath, 0, sizeof(shortestPath));
+	shortestPath.clear();
 	for (int i = 0; i < sp.size(); i++) {
 		shortestPath[i] = sp.at(i);
 	}
-	if (PuzzleConfiguration::getVerbose()) {
+	if (IS_VERBOSE) {
 		cout << "done." << endl;
 	}
 }
@@ -82,7 +87,7 @@ float IDAStar::getElapsedTimeInSeconds() {
 	return diff / (CLOCKS_PER_SEC / 1000);
 }
 
-void IDAStar::solve(const uint64_t currentState, int threadCount) {
+void IDAStar::solve(const int64_t currentState, int threadCount) {
 	Node::initialize(); //определяется текущая конфигурация паззла
 	initialize(); //инициализируются таймеры и счетчики
 
@@ -92,19 +97,11 @@ void IDAStar::solve(const uint64_t currentState, int threadCount) {
 		solveMultyThreaded(currentState, threadCount);
 
 	markEndTime();
-	running = false;
+	Node::clean();
+	gruning = false;
 }
 
-void IDAStar::start() {
-	running = true;
-	solved = false;
-}
-
-void IDAStar::stop() {
-	running = false;
-}
-
-void IDAStar::solveSingleThreaded(const uint64_t currentState) {
+void IDAStar::solveSingleThreaded(const int64_t currentState) {
 	cout << "Single threaded solving\n";
 	initialMovesEstimate = movesRequired = Node::h(currentState);
 	workers = new DFSWorker[1];
@@ -112,16 +109,17 @@ void IDAStar::solveSingleThreaded(const uint64_t currentState) {
 	// Add to array so GUI can poll it for the stats in real time.
 	workers[0] = dfsWorker;
 	do {
-		if (PuzzleConfiguration::isVerbose) {
+		if (IS_VERBOSE) {
 			cout << "\nSearching paths of depth " << movesRequired << "..."
-					<< endl;
+			<< endl;
 		}
 		dfsWorker.setConfig(currentState, "X", movesRequired, 0);
 		dfsWorker.run();
-		if (!solved) {
+		if (!gsolved) {
 			movesRequired += 2;
 		}
-	} while (running);
+	} while (gruning);
+	delete [] workers;
 }
 
 void IDAStar::openQueue(mqd_t& q) {
@@ -134,99 +132,69 @@ void * runWorker(void * arg){
 	pthread_exit(0);
 }
 
-
-void IDAStar::solveMultyThreaded(const uint64_t currentState, int threadCount) {
-	char buffer[64];
-	sprintf(buffer, "Multy thread solving with thread count = %d\n",
-			threadCount);
-	cout << buffer;
-	findStartingPositions(currentState, threadCount);
-	std::queue<BFSNode> queue_back1;
-	char* etalon = "-1168372231105084636 R XRRR\n"
-			"-1168372231222511836 D XRRD\n"
-			"-1168372231100681596 L XRDL\n"
-			"-1168372231223561596 R XRDR\n"
-			"-1168372918297742716 D XRDD\n"
-			"-1168372231223889331 R XDRR\n"
-			"-1168372231109594611 U XDRU\n"
-			"-1168372918298070451 D XDRD\n"
-			"-1168372896825527731 R XDDR\n"
-			"-1170905488716123571 D XDDD\n";
-	ostringstream sss;
-	for(int i=0; i<queue.size(); i++){
-		BFSNode	node = queue.front();
-		queue_back1.push(node);
-		queue.pop();
-		sss<<(int64_t)node.boardConfig<<" "<<node.direction<<" "<<node.path<<endl;
-	}
-	const char* css = sss.str().c_str();
-	cout<<"css\n"<<css<<endl;
-	cout<<"etalon\n"<<etalon<<endl;
-	int line = 1;
-	for(int i=0; i<strlen(etalon);i ++){
-		if(css[i]!=etalon[i]){
-			printf("Nesovpaden in line %d\n", line);
-			break;
-		} else if(css[i]=='\n'){
-			line++;
-		}
-	}
-	initialMovesEstimate = movesRequired = Node::h(currentState);
-	workers = new DFSWorker[threadCount];
-	DFSWorker dfsWorker;
-	// Add to array so GUI can poll it for the stats in real time.
-	for (int i = 0; i < threadCount; i++)
-		workers[i] = dfsWorker;
-	/*do {
-		if (PuzzleConfiguration::isVerbose) {
-			cout << "\nSearching paths of depth " << movesRequired << "..."
-					<< endl;
-		}
-		dfsWorker.setConfig(currentState, "X", movesRequired, 0);
-		dfsWorker.run();
-		if (!solved) {
-			movesRequired += 2;
-		}
-	} while (running);*/
-	do {
-		if (PuzzleConfiguration::isVerbose) {
-			printf("Searching paths of length %d moves\n", movesRequired);
-		}
-		int i=-1;
-		pthread_t threads[threadCount];
-		std::queue<BFSNode> queue_back;
-		while (queue.size()) {
-			++i;
-			printf("Start thread %d\n", i);
-			BFSNode	node = queue.front();
-			queue_back.push(node);
-			queue.pop();
-			string currentPath = node.getPath();
-			DFSWorker worker = workers[i];
-			worker.setConfig(node.boardConfig, currentPath, movesRequired,
-					currentPath.length() - 1);
-			pthread_t thr;
-			pthread_create(&thr, NULL, &runWorker, &worker);
-			threads[i]=thr;
-		}
-		queue=queue_back;
-		printf("Join threads\n");
-		for(int i=0; i<threadCount; i++)
-			pthread_join(threads[i], NULL);
-
-		if (!solved) {
-			movesRequired += 2;
-		}
-	} while (running);
-	printf("Done");
-//	delete workers;
-	//solveSingleThreaded(currentState);
+bool checkRun(){
+	bool ret;
+	pthread_mutex_lock(&IDAStar::running_mutex);
+	ret = gruning;
+	pthread_mutex_unlock(&IDAStar::running_mutex);
+	return ret;
 }
 
-void IDAStar::putToQueue(BFSNode* node, map<uint64_t, BFSNode>* m) {
+void IDAStar::solveMultyThreaded(const int64_t currentState, int threadCount) {
+
+	printf("Multy thread solving with thread count = %d\n", threadCount);
+	findStartingPositions(currentState, threadCount);
+	initialMovesEstimate = movesRequired = Node::h(currentState);
+
+	const unsigned int numElements = queue.size();
+	workers = new DFSWorker[numElements];
+	pthread_t* threads = new pthread_t[numElements];
+	if(!gsolved){
+		while (checkRun()) {
+			if (IS_VERBOSE) {
+				printf("Searching paths of length %d moves\n", movesRequired);
+			}
+			// Add to array so GUI can poll it for the stats in real time.
+			for (int i = 0; i < numElements; i++){
+				DFSWorker tmp;
+				workers[i] = tmp;
+			}
+
+			int p=0;
+			while (p<numElements) {
+				BFSNode	node = queue.front();
+				queue.pop();
+				queue.push(node);
+				string currentPath = node.getPath();
+				DFSWorker worker = workers[p];
+				worker.setConfig(node.boardConfig, currentPath, movesRequired,
+						currentPath.length() - 1);
+				pthread_t thr;
+				pthread_create(&thr, NULL, &runWorker, &worker);
+				threads[p]=thr;
+				p++;
+			}
+			for(unsigned int k=0; k<numElements; k++){
+				if(int l = pthread_join(threads[k], NULL)){
+					printf("Error thread join: %d", l);
+				}
+			}
+
+			if (!gsolved) {
+				movesRequired += 2;
+			}
+		}
+	}
+	delete [] threads;
+	delete [] workers;
+	threads = NULL;
+	workers = NULL;
+	printf("Done");
+}
+
+void IDAStar::putToQueue(BFSNode* node, map<int64_t, BFSNode>* m) {
 	int hash = node->getHash();
-	cout<<node->boardConfig<<" "<<node->direction<<" "<<node->path<<endl;
-	map<uint64_t, BFSNode>::iterator it = m->find(hash);
+	map<int64_t, BFSNode>::iterator it = m->find(hash);
 	if (it == m->end()) {
 		(*m)[hash] = node;
 		queue.push(node);
@@ -235,12 +203,12 @@ void IDAStar::putToQueue(BFSNode* node, map<uint64_t, BFSNode>* m) {
 	}
 }
 
-void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
+void IDAStar::findStartingPositions(int64_t currentState, int howMany) {
 	BFSNode currentNode(currentState, true);
 	currentNode.cost = 0;
-	map<uint64_t, BFSNode> m;
+	map<int64_t, BFSNode> m;
 
-	if (currentNode.boardConfig == Node::goalState) {
+	if (currentNode.boardConfig == GOAL_STATE) {
 		completeBFS(currentNode);
 		return;
 	}
@@ -259,7 +227,7 @@ void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
 			currentNode.moveLeftNode(NULL, &left);
 			if (!left.isNull) {
 				++numberExpanded;
-				if (left.boardConfig == Node::goalState) {
+				if (left.boardConfig == GOAL_STATE) {
 					completeBFS(left);
 					return;
 				} else {
@@ -272,7 +240,7 @@ void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
 			currentNode.moveRightNode(NULL, &right);
 			if (!right.isNull) {
 				++numberExpanded;
-				if (right.boardConfig == Node::goalState) {
+				if (right.boardConfig == GOAL_STATE) {
 					completeBFS(right);
 					return;
 				} else {
@@ -286,7 +254,7 @@ void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
 			currentNode.moveUpNode(NULL, &up);
 			if (!up.isNull) {
 				++numberExpanded;
-				if (up.boardConfig == Node::goalState) {
+				if (up.boardConfig == GOAL_STATE) {
 					completeBFS(up);
 					return;
 				} else {
@@ -300,7 +268,7 @@ void IDAStar::findStartingPositions(uint64_t currentState, int howMany) {
 			currentNode.moveDownNode(NULL, &down);
 			if (!down.isNull) {
 				++numberExpanded;
-				if (down.boardConfig == Node::goalState) {
+				if (down.boardConfig == GOAL_STATE) {
 					completeBFS(down);
 					return;
 				} else {

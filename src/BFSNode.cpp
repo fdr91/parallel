@@ -7,7 +7,7 @@
 
 #include "BFSNode.h"
 #include <string>
-#include <boost/functional/hash.hpp>
+#include "globals.h"
 
 #define MAX_PATH 256
 
@@ -23,21 +23,21 @@ BFSNode::~BFSNode() {
 	// TODO Auto-generated destructor stub
 }
 
-uint64_t BFSNode::getHash() {
+int64_t BFSNode::getHash() {
 	/*boost::hash<BFSNode> hash;
 	boost::hash<boardConfig> string_hash;
 	this->boardConfig;*/
 	return boardConfig;
 }
 
-BFSNode::BFSNode(const uint64_t boardConfig) {
+BFSNode::BFSNode(const int64_t boardConfig) {
 	this->boardConfig = boardConfig;
 	this->storePath = false;
 	this->cost = 0;
 	isNull = false;
 }
 
-BFSNode::BFSNode(const uint64_t boardConfig, const bool storePath) {
+BFSNode::BFSNode(const int64_t boardConfig, const bool storePath) {
 	this->boardConfig = boardConfig;
 	this->storePath = storePath;
 	this->cost = 0;
@@ -80,7 +80,7 @@ int BFSNode::posOfSpaceF() {
 
 bool BFSNode::moveLeftNode(const bool* tilesInSubset, BFSNode* ret) {
 	const int posOfSpace = posOfSpaceF();
-	if (posOfSpace % dimension == 0) {
+	if (posOfSpace % DIMENSION == 0) {
 		ret->isNull = true;
 		return false;
 	}
@@ -89,10 +89,10 @@ bool BFSNode::moveLeftNode(const bool* tilesInSubset, BFSNode* ret) {
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posMinusOneTimes4 = (posOfSpace - 1)
 			<< 2;
-	const uint64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
+	const int64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
 			(ret->boardConfig >> posMinusOneTimes4) & 0xF;
 
-	const uint64_t zeroBitTile = (uint64_t) 0xF << posMinusOneTimes4;
+	const int64_t zeroBitTile = (int64_t) 0xF << posMinusOneTimes4;
 	ret->boardConfig = ret->boardConfig & ~zeroBitTile | (tile << posTimes4)
 			| (space << posMinusOneTimes4);
 	ret->direction = 'L';
@@ -120,7 +120,7 @@ void BFSNode::cp(BFSNode* copy) {
 
 bool BFSNode::moveRightNode(const bool* tilesInSubset, BFSNode* ret) {
 	const int posOfSpace = posOfSpaceF(), posPlusOne = posOfSpace + 1;
-	if (posPlusOne % dimension == 0) {
+	if (posPlusOne % DIMENSION == 0) {
 		ret->isNull = true;
 		return false;
 	}
@@ -129,10 +129,10 @@ bool BFSNode::moveRightNode(const bool* tilesInSubset, BFSNode* ret) {
 
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posPlusOneTimes4 = posPlusOne << 2;
-	const uint64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
+	const int64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
 			(ret->boardConfig >> posPlusOneTimes4) & 0xF;
 
-	const uint64_t zeroBitTile = (uint64_t) 0xF << posPlusOneTimes4;
+	const int64_t zeroBitTile = (int64_t) 0xF << posPlusOneTimes4;
 	ret->boardConfig = ret->boardConfig & ~zeroBitTile | (tile << posTimes4)
 			| (space << posPlusOneTimes4);
 	ret->direction = 'R';
@@ -149,7 +149,7 @@ bool BFSNode::moveRightNode(const bool* tilesInSubset, BFSNode* ret) {
 
 bool BFSNode::moveUpNode(const bool* tilesInSubset, BFSNode* ret) {
 	const int posOfSpace = posOfSpaceF();
-	if (posOfSpace < dimension) {
+	if (posOfSpace < DIMENSION) {
 		ret ->isNull=true;
 		return false;
 	}
@@ -157,11 +157,11 @@ bool BFSNode::moveUpNode(const bool* tilesInSubset, BFSNode* ret) {
 
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posMinusDimTimes4 = (posOfSpace
-			- dimension) << 2;
-	const uint64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
+			- DIMENSION) << 2;
+	const int64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
 			(ret->boardConfig >> posMinusDimTimes4) & 0xF;
 
-	const uint64_t zeroBitTile = (uint64_t) 0xF << posMinusDimTimes4;
+	const int64_t zeroBitTile = (int64_t) 0xF << posMinusDimTimes4;
 	ret->boardConfig = ret->boardConfig & ~zeroBitTile | (tile << posTimes4)
 			| (space << posMinusDimTimes4);
 	ret->direction = 'U';
@@ -178,7 +178,7 @@ bool BFSNode::moveUpNode(const bool* tilesInSubset, BFSNode* ret) {
 
 bool BFSNode::moveDownNode(const bool* tilesInSubset, BFSNode* ret) {
 	const int posOfSpace = posOfSpaceF();
-	if (posOfSpace >= numOfTiles - dimension) {
+	if (posOfSpace >= NUM_OF_TILES - DIMENSION) {
 		ret->isNull=true;
 		return false;
 	}
@@ -186,11 +186,11 @@ bool BFSNode::moveDownNode(const bool* tilesInSubset, BFSNode* ret) {
 
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posPlusDimTimes4 = (posOfSpace
-			+ dimension) << 2;
-	const uint64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
+			+ DIMENSION) << 2;
+	const int64_t space = (ret->boardConfig >> posTimes4) & 0xF, tile =
 			(ret->boardConfig >> posPlusDimTimes4) & 0xF;
 
-	const uint64_t zeroBitTile = (uint64_t) 0xF << posPlusDimTimes4;
+	const int64_t zeroBitTile = (int64_t) 0xF << posPlusDimTimes4;
 	ret->boardConfig = ret->boardConfig & ~zeroBitTile | (tile << posTimes4)
 			| (space << posPlusDimTimes4);
 	ret->direction = 'D';

@@ -7,6 +7,7 @@
 
 #include "IDAStarNode.h"
 #include "Node.h"
+#include "globals.h"
 
 IDAStarNode::IDAStarNode() {
 	// TODO Auto-generated constructor stub
@@ -18,12 +19,12 @@ IDAStarNode::~IDAStarNode() {
 }
 
 uint64_t IDAStarNode::moveUp(uint64_t boardConfig, uint64_t posOfSpace) {
-	if (posOfSpace < Node::dimension) {
+	if (posOfSpace < DIMENSION) {
 		return 0;
 	}
 	// Swap tile with space.
 	const uint64_t posTimes4 = posOfSpace << 2, posMinusDimTimes4 = (posOfSpace
-			- Node::dimension) << 2;
+			- DIMENSION) << 2;
 	const uint64_t space = (boardConfig >> posTimes4) & 0xF, tile = (boardConfig
 			>> posMinusDimTimes4) & 0xF;
 
@@ -33,12 +34,12 @@ uint64_t IDAStarNode::moveUp(uint64_t boardConfig, uint64_t posOfSpace) {
 	return ret;
 }
 uint64_t IDAStarNode::moveDown(uint64_t boardConfig, uint64_t posOfSpace) {
-    if (posOfSpace >= Node::numOfTiles - Node::dimension) {
+    if (posOfSpace >= NUM_OF_TILES - DIMENSION) {
         return 0;
     }
     // Swap tile with space.
     const uint64_t posTimes4 = posOfSpace << 2,
-              posPlusDimTimes4 = (posOfSpace + Node::dimension) << 2;
+              posPlusDimTimes4 = (posOfSpace + DIMENSION) << 2;
     const uint64_t space = (boardConfig >> posTimes4) & 0xF,
                tile = (boardConfig >> posPlusDimTimes4) & 0xF;
 
@@ -48,7 +49,7 @@ uint64_t IDAStarNode::moveDown(uint64_t boardConfig, uint64_t posOfSpace) {
     return ret;
 }
 uint64_t IDAStarNode::moveLeft(uint64_t boardConfig, uint64_t posOfSpace) {
-	if (posOfSpace % Node::dimension == 0) {
+	if (posOfSpace % DIMENSION == 0) {
 		return 0;
 	}
 	// Swap tile with space.
@@ -64,7 +65,7 @@ uint64_t IDAStarNode::moveLeft(uint64_t boardConfig, uint64_t posOfSpace) {
 }
 uint64_t IDAStarNode::moveRight(uint64_t boardConfig, uint64_t posOfSpace) {
     const uint64_t posPlusOne = posOfSpace + 1;
-    if (posPlusOne % Node::dimension == 0) {
+    if (posPlusOne % DIMENSION == 0) {
         return 0;
     }
     // Swap tile with space.

@@ -6,8 +6,12 @@
  */
 
 #include "PuzzleSolver.h"
-#include "PuzzleConfiguration.h"
 #include "Utility.h"
+#include <stdio.h>
+#include <cstring>
+#include "IDAStar.h"
+
+
 
 
 PuzzleSolver::PuzzleSolver() {
@@ -16,18 +20,30 @@ PuzzleSolver::PuzzleSolver() {
 }
 
 PuzzleSolver::PuzzleSolver(std::vector<char> state, int threadCount){
-	PuzzleConfiguration::setVerbose(true);
-	PuzzleConfiguration::initialize(16);
-	IDAStar algorithm = PuzzleConfiguration::getAlgorithm();
+	IDAStar algorithm;
+	//algorithm.clear();
 	algorithm.solve(arrayToLong(state), threadCount);
 	displayStats(state);
 	directions = getDirections(state);
 }
 
 PuzzleSolver::~PuzzleSolver() {
-	// TODO Auto-generated destructor stub
+
 }
 
 std::vector<std::string> PuzzleSolver::getSolution(void){
 	return directions;
 }
+
+void PuzzleSolver::getCharSSolution(char *solution, int size){
+	std::string tmp;
+	for(std::vector<std::string>::iterator it = directions.begin(); it!=directions.end(); it++){
+		tmp+='\n';
+		tmp+=*it;
+	}
+	tmp.copy(solution, size, 0);;
+//memccpy((void*)tmp.c_str(), (void*)solution, 0, tmp.length()*sizeof(char));
+	return;
+}
+
+

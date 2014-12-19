@@ -9,6 +9,7 @@
 #define NODE_H_
 
 #include <stdint.h>
+#include <string>
 
 class Node {
 	 // The tile positions array contains the 4-bit position of the tile's location
@@ -26,23 +27,16 @@ class Node {
     //   The rest are in subset 2
     const static int tileSubsets[];// = {-1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2, 2};
 
-
-
-
-
-
+	static void loadStreamCostTable(std::string filename, char* costTable, int size);
 
 public:
 
-    static int dimension, numOfTiles, numOfTilesMinusOne;
-
     static void initialize();
+    static void clean();
 
-    static uint64_t goalState, goalStatePositions;
+    static int h(const int64_t boardConfig);
 
-    static int h(const uint64_t boardConfig);
-
-    static int posOfSpace(const uint64_t boardConfig);
+    static int posOfSpace(const int64_t boardConfig);
 
 };
 
