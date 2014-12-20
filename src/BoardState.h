@@ -16,10 +16,10 @@ class BoardState {
 	int64_t state;
 	const static int64_t goal=1147797409030816545;
 	const static int64_t size=16;
-	void getTileArray(std::string* tileOrder, std::vector<char> *tileArray);
+
 	int64_t arrayToLong(std::vector<char> state);
 public:
-
+	static void getTileArray(std::string* tileOrder, std::vector<char> *tileArray);
 	BoardState moveUp();
 	BoardState moveDown();
 	BoardState moveLeft();

@@ -23,12 +23,14 @@ class PuzzleSolver {
 	pthread_mutex_t running_mutex;
 	const int size=16;
 
+	int initialMovesEstimate, movesRequired;
+
 	Path path;
 
 	void loadStreamCostTable(const std::string filename, char* costTable, int size);
 
-	int* tilePositions;
-	int* tileSubsets;
+	int tilePositions [16] = {-1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5, 4, 5};
+	int tileSubsets [16] = {-1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2, 2};
 
 public:
 	int h(BoardState);
@@ -41,7 +43,7 @@ public:
 	void solve(int t);
 	void solveSingleThread();
 	void setInitial();
-	virtual ~PuzzleSolver();
+	~PuzzleSolver();
 };
 
 #endif /* PUZZLESOLVER_H_ */

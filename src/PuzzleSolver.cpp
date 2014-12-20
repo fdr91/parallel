@@ -8,6 +8,7 @@
 #include "PuzzleSolver.h"
 #include <stdexcept>
 #include <fstream>
+#include "Worker.h"
 
 using namespace std;
 
@@ -21,8 +22,10 @@ bool PuzzleSolver::getSolved() {
 bool PuzzleSolver::setSolved() {
 	bool ret = false;
 	pthread_mutex_lock(&running_mutex);
-	if (!solved)
+	if (!solved){
 		ret = true;
+		solved = true;
+	}
 	pthread_mutex_unlock(&running_mutex);
 	return ret;
 }
@@ -62,10 +65,8 @@ void PuzzleSolver::setPath(Path p) {
 }
 
 PuzzleSolver::PuzzleSolver() {
-	tilePositions = {-1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5,
-		4, 5};
-	tileSubsets = {-1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2,
-		2};
+	initialMovesEstimate=0;
+		movesRequired=0;
 	costTable_15_puzzle_0 = NULL;
 	costTable_15_puzzle_1 = NULL;
 	costTable_15_puzzle_2 = NULL;
@@ -75,6 +76,8 @@ PuzzleSolver::PuzzleSolver() {
 }
 
 PuzzleSolver::PuzzleSolver(BoardState& p) {
+	initialMovesEstimate=0;
+	movesRequired=0;
 	this->running_mutex=PTHREAD_MUTEX_INITIALIZER;
 	solved = p.isGoal();
 	threadCount = -1;
@@ -83,15 +86,21 @@ PuzzleSolver::PuzzleSolver(BoardState& p) {
 	costTable_15_puzzle_0 = NULL;
 	costTable_15_puzzle_1 = NULL;
 	costTable_15_puzzle_2 = NULL;
-	tilePositions = [-1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5,
-		4, 5];
-	tileSubsets = {-1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2,
-		2};
 
 }
 
 void PuzzleSolver::solveSingleThread() {
-
+	initialMovesEstimate = movesRequired = h(this->puzzle);
+	Worker worker(this);
+	do {
+		printf("Searching path of depth %d...\n", movesRequired);
+		Path p;
+		worker.setConfig(puzzle, p, 'X', movesRequired, 0);
+		worker.run();
+		if (!solved) {
+			movesRequired += 2;
+		}
+	} while(!solved);
 }
 
 void PuzzleSolver::solve(int t) {
@@ -136,8 +145,9 @@ void PuzzleSolver::setInitial() {
 }
 
 PuzzleSolver::~PuzzleSolver() {
-	delete[] costTable_15_puzzle_0;
-	delete[] costTable_15_puzzle_1;
-	delete[] costTable_15_puzzle_2;
+	delete [] costTable_15_puzzle_0;
+	delete [] costTable_15_puzzle_1;
+	delete [] costTable_15_puzzle_2;
+	printf("Memory is free\n");
 }
 

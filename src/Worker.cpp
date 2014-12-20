@@ -8,7 +8,7 @@
 #include "Worker.h"
 
 Worker::Worker() {
-
+	this->parrent=NULL;
 	this->depth = -1;
 	this->pos = -1;
 	this->solved = false;
@@ -61,57 +61,58 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 	const int  posPlusOne = pos + 1;
 
 	if (fromDirection != 'R') {
-		const BoardState successor = currentState.moveLeft();
+		BoardState successor = currentState.moveLeft();
 		if (successor.getLong() != 0) {
 			if (posPlusOne + parrent->h(successor) <= depth) {
 				depthFirstSearch(successor, 'L', depth, posPlusOne);
 			}
 			if (solved) {
-				path[pos] = fromDirection;
+				path.set(pos,fromDirection);
 				return;
 			}
 		}
 	}
 
 	if (fromDirection != 'L') {
-		const BoardState successor = currentState.moveRight();
+		BoardState successor = currentState.moveRight();
 		if (successor.getLong() != 0) {
 
 			if (posPlusOne + parrent->h(successor) <= depth) {
 				depthFirstSearch(successor, 'R', depth, posPlusOne);
 			}
 			if (solved) {
-				path[pos] = fromDirection;
+				path.set(pos,fromDirection);
 				return;
 			}
 		}
 	}
 
 	if (fromDirection != 'D') {
-		const BoardState successor = currentState.moveUp();
+		BoardState successor = currentState.moveUp();
 		if (successor.getLong() != 0) {
 			if (posPlusOne + parrent->h(successor) <= depth) {
 				depthFirstSearch(successor, 'U', depth, posPlusOne);
 			}
 			if (solved) {
-				path[pos] = fromDirection;
+				path.set(pos,fromDirection);
 				return;
 			}
 		}
 	}
 
 	if (fromDirection != 'U') {
-		const BoardState  successor = currentState.moveDown();
+		BoardState  successor = currentState.moveDown();
 		if (successor.getLong() != 0) {
 			if (posPlusOne + parrent->h(successor) <= depth) {
 				depthFirstSearch(successor, 'D', depth, posPlusOne);
 			}
 			if (solved) {
-				path[pos] = fromDirection;
+				path.set(pos,fromDirection);
 				return;
 			}
 		}
 	}
+	return;
 }
 
 Worker::~Worker() {
