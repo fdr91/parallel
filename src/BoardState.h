@@ -18,6 +18,7 @@ class BoardState {
 	const static int64_t size=16;
 
 	int64_t arrayToLong(std::vector<char> state);
+
 public:
 	static void getTileArray(std::string* tileOrder, std::vector<char> *tileArray);
 	BoardState moveUp();
@@ -25,6 +26,7 @@ public:
 	BoardState moveLeft();
 	BoardState moveRight();
 
+	void set(int64_t);
 	BoardState();
 	BoardState(const char* cstr);
 	BoardState(std::string str);
@@ -34,6 +36,7 @@ public:
 	BoardState(const BoardState& val);
 	bool isGoal(){return goal==state;};
 	virtual ~BoardState();
+	BoardState & operator = (BoardState const & num);
 };
 
 #endif /* BOARDSTATE_H_ */

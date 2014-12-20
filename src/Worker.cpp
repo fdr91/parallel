@@ -7,8 +7,10 @@
 
 #include "Worker.h"
 
+extern pthread_mutex_t running_mutex;
+
 Worker::Worker() {
-	this->parrent=NULL;
+	this->parrent = NULL;
 	this->depth = -1;
 	this->pos = -1;
 	this->solved = false;
@@ -38,12 +40,20 @@ void Worker::setConfig(BoardState currentState, Path path, char from, int depth,
 
 void Worker::run() {
 	depthFirstSearch(currentState, fromDirection, depth, pos);
-	if (solved) {
-		if (parrent->setSolved()) {
-			parrent->setPath(this->path);
-			printf("Solved. The path size is %d\n", this->path.size());
-		}
+
+	pthread_mutex_lock(&running_mutex);
+	if (solved && !terminationFlag) {
+		/*if (parrent->setSolved()) {
+		 parrent->setPath(this->path);
+		 printf("Solved. The path size is %d\n", this->path.size());
+		 }*/
+		this->path.finalize();
+
+		parrent->setPath(this->path);
+
 	}
+	pthread_mutex_unlock(&running_mutex);
+
 }
 
 void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
@@ -52,13 +62,20 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 		return;
 
 	if (currentState.isGoal()) {
-		solved = true;
-		path.set(pos, fromDirection);
-		printf("Solved\n");
+		pthread_mutex_lock(&running_mutex);
+		if (parrent->setSolved()) {
+			solved = true;
+			path.append(fromDirection);
+			printf("Solved\n");
+		}
+		pthread_mutex_unlock(&running_mutex);
+		if (!solved)
+			this->terminationFlag = true;
 		return;
+
 	}
 
-	const int  posPlusOne = pos + 1;
+	const int posPlusOne = pos + 1;
 
 	if (fromDirection != 'R') {
 		BoardState successor = currentState.moveLeft();
@@ -66,10 +83,15 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 			if (posPlusOne + parrent->h(successor) <= depth) {
 				depthFirstSearch(successor, 'L', depth, posPlusOne);
 			}
-			if (solved) {
-				path.set(pos,fromDirection);
+			if (terminationFlag) {
 				return;
 			}
+			if (solved) {
+				//path.set(pos,fromDirection);
+				path.append(fromDirection);
+				return;
+			}
+
 		}
 	}
 
@@ -80,8 +102,13 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 			if (posPlusOne + parrent->h(successor) <= depth) {
 				depthFirstSearch(successor, 'R', depth, posPlusOne);
 			}
+
+			if (terminationFlag) {
+				return;
+			}
 			if (solved) {
-				path.set(pos,fromDirection);
+				//path.set(pos,fromDirection);
+				path.append(fromDirection);
 				return;
 			}
 		}
@@ -93,21 +120,31 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 			if (posPlusOne + parrent->h(successor) <= depth) {
 				depthFirstSearch(successor, 'U', depth, posPlusOne);
 			}
+
+			if (terminationFlag) {
+				return;
+			}
 			if (solved) {
-				path.set(pos,fromDirection);
+				//path.set(pos,fromDirection);
+				path.append(fromDirection);
 				return;
 			}
 		}
 	}
 
 	if (fromDirection != 'U') {
-		BoardState  successor = currentState.moveDown();
+		BoardState successor = currentState.moveDown();
 		if (successor.getLong() != 0) {
 			if (posPlusOne + parrent->h(successor) <= depth) {
 				depthFirstSearch(successor, 'D', depth, posPlusOne);
 			}
+
+			if (terminationFlag) {
+				return;
+			}
 			if (solved) {
-				path.set(pos,fromDirection);
+				//path.set(pos,fromDirection);
+				path.append(fromDirection);
 				return;
 			}
 		}

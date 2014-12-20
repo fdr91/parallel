@@ -9,6 +9,7 @@
 #include <math.h>
 #include <sstream>
 #include <stdexcept>
+//#include <swap>
 
 using namespace std;
 
@@ -44,21 +45,19 @@ bool isValidPermutation(std::vector<char> *check){
 
 
 void BoardState::getTileArray(std::string* tileOrder, std::vector<char> *tileArray) {
-	vector<string> tokens;// = stringSplit(*tileOrder, ",");
 	istringstream f(*tileOrder);
 	string s;
 	while(getline(f, s, ',')){
-		tokens.push_back(s);
+		tileArray->push_back((char)atoi(s.c_str()));
 	}
 
-	if (tokens.size() != 16)
+	if (tileArray->size() != 16)
 		throw invalid_argument("Wrong tiles");
 
-	for(std::vector<string>::iterator it = tokens.begin(); it!=tokens.end(); it++){
-		int val = atoi((*it).c_str());
+	for(int i=0; i<tileArray->size(); i++){
+		char val = tileArray->at(i);
 		if (val > 15 || val < 0)
 			throw invalid_argument("Wrong tiles");
-		tileArray->push_back((char) val);
 	}
 
 	if (!isValidPermutation(tileArray))
@@ -72,6 +71,10 @@ int64_t BoardState::arrayToLong(std::vector<char> state) {
 		value |= ((int64_t) state[i] << (i << 2));
 	}
 	return value;
+}
+
+void BoardState::set(int64_t t){
+	this->state=t;
 }
 
 BoardState::BoardState(const BoardState& v) {
@@ -174,4 +177,19 @@ BoardState BoardState::moveRight() {
 
 BoardState::BoardState(int64_t t){
 	this->state = t;
+}
+
+
+/*void BoardState::swap(BoardState & b)
+{
+	std::swap(this->goal, b.goal);
+	std::swap(this->size, b.size);
+	std::swap(this->state, b.state);
+}*/
+
+BoardState & BoardState::operator = (BoardState const & num)
+{
+	if(this != &num)
+		this->state=num.state;
+	return *this;
 }

@@ -8,9 +8,12 @@
 #include "PuzzleSolver.h"
 #include <stdexcept>
 #include <fstream>
+#include <map>
 #include "Worker.h"
 
 using namespace std;
+
+pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*char* PuzzleSolver::costTable_15_puzzle_0 = NULL;
  char* PuzzleSolver::costTable_15_puzzle_1 = NULL;
@@ -21,12 +24,10 @@ bool PuzzleSolver::getSolved() {
 }
 bool PuzzleSolver::setSolved() {
 	bool ret = false;
-	pthread_mutex_lock(&running_mutex);
 	if (!solved) {
 		ret = true;
 		solved = true;
 	}
-	pthread_mutex_unlock(&running_mutex);
 	return ret;
 }
 
@@ -61,7 +62,7 @@ Path PuzzleSolver::getPath() {
 	return this->path;
 }
 void PuzzleSolver::setPath(Path p) {
-	this->path = Path(p);
+	this->path = p;
 }
 
 PuzzleSolver::PuzzleSolver() {
@@ -71,10 +72,8 @@ PuzzleSolver::PuzzleSolver() {
 	costTable_15_puzzle_1 = NULL;
 	costTable_15_puzzle_2 = NULL;
 	threadCount = -1;
-	this->running_mutex=PTHREAD_MUTEX_INITIALIZER;
 	solved = false;
 }
-
 
 void PuzzleSolver::reset(const char* _p) {
 	BoardState p(_p);
@@ -87,24 +86,25 @@ void PuzzleSolver::reset(const char* _p) {
 }
 
 /*PuzzleSolver::PuzzleSolver(const PuzzleSolver& i) {
-	costTable_15_puzzle_0 = NULL;
-	costTable_15_puzzle_1 = NULL;
-	costTable_15_puzzle_2 = NULL;
-	this->initialMovesEstimate = i.initialMovesEstimate;
-	this->movesRequired = i.movesRequired;
-	this->path = i.path;
-	this->puzzle = i.puzzle;
-	this->running_mutex = PTHREAD_MUTEX_INITIALIZER; //???
-	this->solved = i.solved;
-	this->state = i.state;
-	this->threadCount = i.threadCount;
-}*/
+ costTable_15_puzzle_0 = NULL;
+ costTable_15_puzzle_1 = NULL;
+ costTable_15_puzzle_2 = NULL;
+ this->initialMovesEstimate = i.initialMovesEstimate;
+ this->movesRequired = i.movesRequired;
+ this->path = i.path;
+ this->puzzle = i.puzzle;
+ this->running_mutex = PTHREAD_MUTEX_INITIALIZER; //???
+ this->solved = i.solved;
+ this->state = i.state;
+ this->threadCount = i.threadCount;
+ }*/
+
+
 
 PuzzleSolver::PuzzleSolver(const char* _p) {
 	BoardState p(_p);
 	initialMovesEstimate = 0;
 	movesRequired = 0;
-	this->running_mutex=PTHREAD_MUTEX_INITIALIZER;
 	solved = p.isGoal();
 	threadCount = -1;
 	puzzle = BoardState(p);
@@ -129,22 +129,179 @@ void PuzzleSolver::solveSingleThread() {
 	} while (!solved);
 }
 
-void  PuzzleSolver::solveMultyThread(){
+void PuzzleSolver::completeBFS(Path currentNode) {
+	this->path = Path(currentNode);
+	this->solved = true;
+}
 
+void PuzzleSolver::putToQueue(Path* path, map<int64_t, Path>* m, std::list<Path>& list) {
+	int64_t hash = path->stateAsL();
+	map<int64_t, Path>::iterator it = m->find(hash);
+	if (it == m->end()) {
+		(*m)[hash] = Path(*path);
+		list.push_back(Path(*path));
+	} else if (it->second.stateAsL() != path->stateAsL()
+			|| it->second.getPath().compare(path->getPath()) != 0
+			|| it->second.getDirection() != path->getDirection()) {
+		list.push_back(Path(*path));
+	}
+}
+
+void PuzzleSolver::findStartingPositions(BoardState state, int tc, std::list<Path> &list) {
+	Path currentNode(state);
+	map<int64_t, Path> m;
+	if (currentNode.isSolved()) {
+		completeBFS(currentNode);
+		return;
+	}
+
+	if (tc == 1) {
+		list.push_back(currentNode);
+		return;
+	}
+
+	int previousMovesRequired = 0;
+
+	while (!currentNode.isNull()) {
+		const char fromDirection = currentNode.getDirection();
+		if (fromDirection != 'R') {
+			Path left;
+			currentNode.moveLeftNode(&left);
+			if (!left.isNull()) {
+				if (left.isSolved()) {
+					completeBFS(left);
+					return;
+				} else {
+					putToQueue(&left, &m, list);
+				}
+			}
+		}
+		if (fromDirection != 'L') {
+			Path right;
+			currentNode.moveRightNode(&right);
+			if (!right.isNull()) {
+				if (right.isSolved()) {
+					completeBFS(right);
+					return;
+				} else {
+					putToQueue(&right, &m, list);
+				}
+			}
+		}
+
+		if (fromDirection != 'D') {
+			Path up;
+			currentNode.moveUpNode(&up);
+			if (!up.isNull()) {
+				if (up.isSolved()) {
+					completeBFS(up);
+					return;
+				} else {
+					putToQueue(&up, &m, list);
+				}
+			}
+		}
+
+		if (fromDirection != 'U') {
+			Path down;
+			currentNode.moveDownNode(&down);
+			if (!down.isNull()) {
+				if (down.isSolved()) {
+					completeBFS(down);
+					return;
+				} else {
+					putToQueue(&down, &m, list);
+				}
+			}
+		}
+		currentNode = list.front();
+		if (!currentNode.isNull()) {
+			const int movesRequired = currentNode.size();
+
+			if (movesRequired > previousMovesRequired) {
+				previousMovesRequired = movesRequired;
+				if (list.size() >= tc) {
+					break;
+				}
+			} else {
+				currentNode = list.front();
+				list.erase(list.begin());
+			}
+		}
+	}
+
+}
+
+void * runWorker(void * arg) {
+	printf("create thread");
+	Worker* dw = (Worker*) arg;
+	dw->run();
+	printf("Join thread");
+	pthread_exit(0);
+}
+
+void PuzzleSolver::solveMultyThread(int threadCount) {
+	printf("Multy thread solving with thread count = %d\n", threadCount);
+	std::list<Path> list;
+	findStartingPositions(this->puzzle, threadCount, list);
+	initialMovesEstimate = movesRequired = h(this->puzzle);
+	int numElements = list.size();
+		//=new Worker[numElements];
+
+	std::list<Path>::iterator pp = list.begin();
+	while (!solved) {
+		pthread_t threads[64];
+		Worker workers[64];
+		printf("Searching paths of length %d moves\n", movesRequired);
+		// Add to array so GUI can poll it for the stats in real time.
+		for (int i = 0; i < numElements; i++) {
+			Worker tmp(this);
+			workers[i]=tmp;
+		}
+
+		int p = 0;
+		std::list<Path>::iterator it = list.begin();
+		//std::list<Worker>::iterator it2;// = workers.begin();*/
+		int i2=0;
+		for(int i=0; i<numElements; i++, ++it){
+		//for(it=list.begin(),it2= workers.begin(); it != list.end() && it2 !=workers.end(); ++it, ++it2, i2++) {
+			Path node(*it);
+			Worker worker =workers[i];
+			worker.setConfig(node.getState(), node, node.getDirection(),
+					movesRequired, node.size() - 1);
+			pthread_t thr;
+			printf("Thread create %d\n", i2);
+			pthread_create(&thr, NULL, &runWorker, (void*)&worker);
+			threads[i]=thr;
+			p++;
+		}
+		for (int i=0; i<numElements; i++) {
+			if (int l = pthread_join(threads[i], NULL)) {
+				printf("Error thread join: %d\n", l);
+			}
+			printf("Thread joined %d\n", i);
+		}
+
+		if (!solved) {
+			movesRequired += 2;
+		}
+	}
 }
 
 void PuzzleSolver::solve(int t) {
 	setInitial();
-	if (t == 1) {
+	//if (t == 1) {
+		//solveSingleThread();
+	//} else if (t > 1) {
+	if(t!=0)
+		solveMultyThread(t);
+	else{
 		solveSingleThread();
-	} else if (t > 1) {
-		solveMultyThread();
-	} else {
-		throw invalid_argument("Wrong thread count");
 	}
+	//} else {
+	//	throw invalid_argument("Wrong thread count");
+	//}
 }
-
-
 
 void PuzzleSolver::loadStreamCostTable(const string filename, char* costTable,
 		int size) {
@@ -177,9 +334,17 @@ void PuzzleSolver::setInitial() {
 }
 
 PuzzleSolver::~PuzzleSolver() {
-	delete[] costTable_15_puzzle_0;
-	delete[] costTable_15_puzzle_1;
-	delete[] costTable_15_puzzle_2;
+
+	printf("Try to free\n");
+	if(costTable_15_puzzle_0!=NULL)
+		delete[] costTable_15_puzzle_0;
+	if(costTable_15_puzzle_1!=NULL)
+		delete[] costTable_15_puzzle_1;
+	if(costTable_15_puzzle_2!=NULL)
+		delete[] costTable_15_puzzle_2;
+	costTable_15_puzzle_0=NULL;
+	costTable_15_puzzle_1=NULL;
+	costTable_15_puzzle_2=NULL;
 	printf("Memory is free\n");
 }
 

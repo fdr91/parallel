@@ -19,8 +19,9 @@ class Worker {
 	int pos;
 	bool solved;
 	char fromDirection;
-	Worker();
+	bool terminationFlag=false;
 public:
+	Worker();
 	void setConfig(BoardState currentState, Path path, char from, int depth, int pos);
 	void depthFirstSearch(BoardState currentState,
 			const char fromDirection, const int depth, const int pos);
