@@ -1,0 +1,49 @@
+9,5,15,4,2,10,12,3,14,6,7,8,0,13,11,1
+ 1. 13 - left
+ 2. 11 - left
+ 3. 1 - left
+ 4. 8 - down
+ 5. 7 - right
+ 6. 12 - down
+ 7. 10 - right
+ 8. 2 - right
+ 9. 9 - down
+10. 5 - left
+11. 2 - up
+12. 6 - up
+13. 12 - left
+14. 1 - up
+15. 11 - right
+16. 12 - down
+17. 14 - right
+18. 9 - down
+19. 6 - left
+20. 10 - left
+21. 1 - up
+22. 11 - up
+23. 12 - right
+24. 14 - down
+25. 10 - down
+26. 1 - left
+27. 15 - down
+28. 2 - right
+29. 1 - up
+30. 10 - up
+31. 11 - left
+32. 15 - down
+33. 3 - left
+34. 7 - up
+35. 8 - up
+36. 12 - right
+37. 15 - down
+38. 11 - right
+39. 10 - down
+40. 6 - right
+41. 5 - down
+42. 1 - left
+43. 2 - left
+44. 3 - up
+45. 7 - left
+46. 8 - up
+47. 12 - up
+

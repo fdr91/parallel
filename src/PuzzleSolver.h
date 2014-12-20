@@ -35,6 +35,9 @@ class PuzzleSolver {
 public:
 	int h(BoardState);
 	PuzzleSolver();
+//	PuzzleSolver(const PuzzleSolver& i);
+	void reset(const char* puzzle);
+	PuzzleSolver(const char* puzzle);
 	PuzzleSolver(BoardState& puzzle);
 	Path getPath();
 	void setPath(Path p);
@@ -42,6 +45,7 @@ public:
 	bool setSolved();
 	void solve(int t);
 	void solveSingleThread();
+	void solveMultyThread();
 	void setInitial();
 	~PuzzleSolver();
 };

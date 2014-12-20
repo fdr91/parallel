@@ -22,7 +22,7 @@ bool PuzzleSolver::getSolved() {
 bool PuzzleSolver::setSolved() {
 	bool ret = false;
 	pthread_mutex_lock(&running_mutex);
-	if (!solved){
+	if (!solved) {
 		ret = true;
 		solved = true;
 	}
@@ -65,8 +65,8 @@ void PuzzleSolver::setPath(Path p) {
 }
 
 PuzzleSolver::PuzzleSolver() {
-	initialMovesEstimate=0;
-		movesRequired=0;
+	initialMovesEstimate = 0;
+	movesRequired = 0;
 	costTable_15_puzzle_0 = NULL;
 	costTable_15_puzzle_1 = NULL;
 	costTable_15_puzzle_2 = NULL;
@@ -75,9 +75,35 @@ PuzzleSolver::PuzzleSolver() {
 	solved = false;
 }
 
-PuzzleSolver::PuzzleSolver(BoardState& p) {
-	initialMovesEstimate=0;
-	movesRequired=0;
+
+void PuzzleSolver::reset(const char* _p) {
+	BoardState p(_p);
+	initialMovesEstimate = 0;
+	movesRequired = 0;
+	solved = p.isGoal();
+	threadCount = -1;
+	puzzle = BoardState(p);
+	state = BoardState(p);
+}
+
+/*PuzzleSolver::PuzzleSolver(const PuzzleSolver& i) {
+	costTable_15_puzzle_0 = NULL;
+	costTable_15_puzzle_1 = NULL;
+	costTable_15_puzzle_2 = NULL;
+	this->initialMovesEstimate = i.initialMovesEstimate;
+	this->movesRequired = i.movesRequired;
+	this->path = i.path;
+	this->puzzle = i.puzzle;
+	this->running_mutex = PTHREAD_MUTEX_INITIALIZER; //???
+	this->solved = i.solved;
+	this->state = i.state;
+	this->threadCount = i.threadCount;
+}*/
+
+PuzzleSolver::PuzzleSolver(const char* _p) {
+	BoardState p(_p);
+	initialMovesEstimate = 0;
+	movesRequired = 0;
 	this->running_mutex=PTHREAD_MUTEX_INITIALIZER;
 	solved = p.isGoal();
 	threadCount = -1;
@@ -100,7 +126,11 @@ void PuzzleSolver::solveSingleThread() {
 		if (!solved) {
 			movesRequired += 2;
 		}
-	} while(!solved);
+	} while (!solved);
+}
+
+void  PuzzleSolver::solveMultyThread(){
+
 }
 
 void PuzzleSolver::solve(int t) {
@@ -108,11 +138,13 @@ void PuzzleSolver::solve(int t) {
 	if (t == 1) {
 		solveSingleThread();
 	} else if (t > 1) {
-		printf("Not implemented\n");
+		solveMultyThread();
 	} else {
 		throw invalid_argument("Wrong thread count");
 	}
 }
+
+
 
 void PuzzleSolver::loadStreamCostTable(const string filename, char* costTable,
 		int size) {
@@ -145,9 +177,9 @@ void PuzzleSolver::setInitial() {
 }
 
 PuzzleSolver::~PuzzleSolver() {
-	delete [] costTable_15_puzzle_0;
-	delete [] costTable_15_puzzle_1;
-	delete [] costTable_15_puzzle_2;
+	delete[] costTable_15_puzzle_0;
+	delete[] costTable_15_puzzle_1;
+	delete[] costTable_15_puzzle_2;
 	printf("Memory is free\n");
 }
 
