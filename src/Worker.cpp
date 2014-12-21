@@ -6,8 +6,12 @@
  */
 
 #include "Worker.h"
+#include <stdio.h>
+#include <algorithm>
 
 extern pthread_mutex_t running_mutex;
+extern pthread_mutex_t solved_mutex;
+
 
 Worker::Worker() {
 	this->parrent = NULL;
@@ -38,29 +42,50 @@ void Worker::setConfig(BoardState currentState, Path path, char from, int depth,
 	this->fromDirection = from;
 }
 
-void Worker::run() {
-	depthFirstSearch(currentState, fromDirection, depth, pos);
+int Worker::isSolved() {
+	return this->solved && !terminationFlag ? 1 : 0;
+}
 
+bool Worker::run() {
+	depthFirstSearch(currentState, fromDirection, depth, pos);
+	bool ret=false;
 	pthread_mutex_lock(&running_mutex);
 	if (solved && !terminationFlag) {
 		/*if (parrent->setSolved()) {
 		 parrent->setPath(this->path);
 		 printf("Solved. The path size is %d\n", this->path.size());
 		 }*/
-		this->path.finalize();
-
+		std::string finalPath=finalize(path.getPath());
+		this->path.setPath(finalPath);
 		parrent->setPath(this->path);
+		ret = solved;
 
 	}
 	pthread_mutex_unlock(&running_mutex);
+	return ret;
 
 }
+
+std::string Worker::finalize(std::string _p){
+	std::string p(_p);
+	int endIndex;
+	if(*(p.end()-1)=='X')
+		endIndex=-2;
+	std::string ret = p.substr(startIndex, p.length()-endIndex);
+	if(*(p.begin())=='X')
+		p.erase(p.begin());
+	std::reverse(ret.begin(), ret.end());
+	ret=p.substr(0, startIndex-2)+ret;
+	printf("%s\n", ret.c_str());
+	return ret;
+}
+
 
 void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 		const int depth, const int pos) {
 	if (parrent->getSolved())
 		return;
-
+	this->startIndex = path.getPath().length();
 	if (currentState.isGoal()) {
 		pthread_mutex_lock(&running_mutex);
 		if (parrent->setSolved()) {

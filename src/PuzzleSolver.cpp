@@ -10,10 +10,12 @@
 #include <fstream>
 #include <map>
 #include "Worker.h"
+ #include <time.h>
 
 using namespace std;
 
 pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t solved_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*char* PuzzleSolver::costTable_15_puzzle_0 = NULL;
  char* PuzzleSolver::costTable_15_puzzle_1 = NULL;
@@ -232,12 +234,30 @@ void PuzzleSolver::findStartingPositions(BoardState state, int tc, std::list<Pat
 
 }
 
-void * runWorker(void * arg) {
-	printf("create thread");
-	Worker* dw = (Worker*) arg;
-	dw->run();
-	printf("Join thread");
+typedef struct ThreadArg{
+	PuzzleSolver *parrent;
+	Path node;
+	int movesRequired;
+} THREAD_ARG, *PTHREAD_ARG;
+
+int num_threads=0;
+volatile bool ssolved=false;
+
+void * runWorker(void * _arg) {
+	num_threads++;
+	PTHREAD_ARG arg = (THREAD_ARG*)_arg;
+
+	//Worker* dw = (Worker*) arg;
+	Worker worker(arg->parrent);
+	worker.setConfig(arg->node.getState(), arg->node, arg->node.getDirection(), arg->movesRequired, arg->node.size() - 1);
+	/*if(worker.run()){
+		ssolved = true;
+	}*/
+
+	worker.run();
+	num_threads--;
 	pthread_exit(0);
+	return 0;
 }
 
 void PuzzleSolver::solveMultyThread(int threadCount) {
@@ -246,42 +266,37 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 	findStartingPositions(this->puzzle, threadCount, list);
 	initialMovesEstimate = movesRequired = h(this->puzzle);
 	int numElements = list.size();
-		//=new Worker[numElements];
-
 	std::list<Path>::iterator pp = list.begin();
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	uint64_t sz=0;
+	pthread_attr_getstacksize(&attr, &sz);
+	pthread_attr_setstacksize(&attr, 8*16777216 );
+	pthread_attr_getguardsize(&attr, &sz);
+	pthread_attr_setguardsize(&attr, 4*16777216);
+	printf("sz = %ld\n", sz);
+	ssolved = false;
 	while (!solved) {
 		pthread_t threads[64];
-		Worker workers[64];
 		printf("Searching paths of length %d moves\n", movesRequired);
-		// Add to array so GUI can poll it for the stats in real time.
-		for (int i = 0; i < numElements; i++) {
-			Worker tmp(this);
-			workers[i]=tmp;
-		}
-
-		int p = 0;
 		std::list<Path>::iterator it = list.begin();
-		//std::list<Worker>::iterator it2;// = workers.begin();*/
-		int i2=0;
 		for(int i=0; i<numElements; i++, ++it){
-		//for(it=list.begin(),it2= workers.begin(); it != list.end() && it2 !=workers.end(); ++it, ++it2, i2++) {
 			Path node(*it);
-			Worker worker =workers[i];
-			worker.setConfig(node.getState(), node, node.getDirection(),
-					movesRequired, node.size() - 1);
+			THREAD_ARG arg;
+			arg.parrent=this;
+			arg.movesRequired = movesRequired;
+			arg.node=node;
 			pthread_t thr;
-			printf("Thread create %d\n", i2);
-			pthread_create(&thr, NULL, &runWorker, (void*)&worker);
+			pthread_create(&thr, &attr, &runWorker, (void*)&arg);
 			threads[i]=thr;
-			p++;
 		}
 		for (int i=0; i<numElements; i++) {
 			if (int l = pthread_join(threads[i], NULL)) {
 				printf("Error thread join: %d\n", l);
 			}
-			printf("Thread joined %d\n", i);
 		}
-
+		if(num_threads>0)
+			throw num_threads;
 		if (!solved) {
 			movesRequired += 2;
 		}

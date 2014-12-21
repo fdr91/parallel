@@ -8,6 +8,9 @@
 #include "Path.h"
 #include "BoardState.h"
 #include <algorithm>
+#include <cstdlib>
+#include <stdio.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -52,6 +55,10 @@ int Path::size() {
 	return p.size();
 }
 
+void Path::setPath(std::string& p){
+	this->p= p;
+}
+
 Path::~Path() {
 	//printf("Destruct %d\n", myId);
 }
@@ -72,10 +79,12 @@ void Path::append(char c){
 }
 
 std::vector<std::string> Path::getDirections(string initState) {
-	const int pathLength = p.length() - 1;
+	int pathLength = p.length();
 	//p=p.substr(1, pathLength);
-	if(*(p.begin())=='X')
+	if(*(p.begin())=='X'){
 		p.erase(0, 1);
+		--pathLength;
+	}
 	vector<string> directions;
 	if (pathLength != 0) {
 		//char* tiles = new char[pathLength];
@@ -179,15 +188,6 @@ void Path::cp(Path *ret) {
 	ret->state = BoardState(this->state);
 }
 
-void Path::finalize(){
-	int index=0;
-	if(*(this->p.begin())=='X')
-		p.erase(p.begin());
-	if(*(this->p.end()-1)=='X')
-		p.erase(p.end()-1);
-	std::reverse(p.begin(), p.end());
-
-}
 
 bool Path::moveLeftNode(Path* ret) {
 	const int posOfSpace = state.posOfSpace();

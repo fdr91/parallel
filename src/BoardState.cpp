@@ -9,6 +9,7 @@
 #include <math.h>
 #include <sstream>
 #include <stdexcept>
+#include <cstdlib>
 //#include <swap>
 
 using namespace std;

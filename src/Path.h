@@ -42,12 +42,12 @@ public:
 	void cp(Path* ret);
 	void setState(int64_t s);
 	std::string getPath();
+	void setPath(std::string& p);
 	BoardState getState();
 	virtual ~Path();
 	void append(char c);
 	void getMovedTiles(std::string& pathStr, std::string initState,	std::string* movedTiles);
 	Path & operator = (Path const & num);
-	void finalize();
 };
 
 #endif /* PATH_H_ */
