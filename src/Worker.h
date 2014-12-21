@@ -24,7 +24,7 @@ class Worker {
 	std::string finalize(std::string p);
 public:
 	Worker();
-
+	bool run(std::string* retval);
 	int isSolved();
 	void setConfig(BoardState currentState, Path path, char from, int depth, int pos);
 	void depthFirstSearch(BoardState currentState,

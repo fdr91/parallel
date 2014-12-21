@@ -14,6 +14,12 @@
 
 using namespace std;
 
+int PuzzleSolver::tilePositions[] = {-1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5, 4, 5};
+int PuzzleSolver::tileSubsets  []= {-1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2, 2};
+char PuzzleSolver::costTable_15_puzzle_0[4096];
+char PuzzleSolver::costTable_15_puzzle_1[16777216];
+char PuzzleSolver::costTable_15_puzzle_2[16777216];
+
 pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t solved_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -70,9 +76,9 @@ void PuzzleSolver::setPath(Path p) {
 PuzzleSolver::PuzzleSolver() {
 	initialMovesEstimate = 0;
 	movesRequired = 0;
-	costTable_15_puzzle_0 = NULL;
+	/*costTable_15_puzzle_0 = NULL;
 	costTable_15_puzzle_1 = NULL;
-	costTable_15_puzzle_2 = NULL;
+	costTable_15_puzzle_2 = NULL;*/
 	threadCount = -1;
 	solved = false;
 }
@@ -111,9 +117,9 @@ PuzzleSolver::PuzzleSolver(const char* _p) {
 	threadCount = -1;
 	puzzle = BoardState(p);
 	state = BoardState(p);
-	costTable_15_puzzle_0 = NULL;
+	/*costTable_15_puzzle_0 = NULL;
 	costTable_15_puzzle_1 = NULL;
-	costTable_15_puzzle_2 = NULL;
+	costTable_15_puzzle_2 = NULL;*/
 
 }
 
@@ -238,10 +244,13 @@ typedef struct ThreadArg{
 	PuzzleSolver *parrent;
 	Path node;
 	int movesRequired;
+	string* ret;
 } THREAD_ARG, *PTHREAD_ARG;
 
 int num_threads=0;
 volatile bool ssolved=false;
+
+string solution("");
 
 void * runWorker(void * _arg) {
 	num_threads++;
@@ -258,6 +267,30 @@ void * runWorker(void * _arg) {
 	num_threads--;
 	pthread_exit(0);
 	return 0;
+}
+
+void * runWorker1(void * _arg) {
+	num_threads++;
+	PTHREAD_ARG arg = (THREAD_ARG*)_arg;
+
+	//Worker* dw = (Worker*) arg;
+	Worker worker;
+	worker.setConfig(arg->node.getState(), arg->node, arg->node.getDirection(), arg->movesRequired, arg->node.size() - 1);
+	/*if(worker.run()){
+		ssolved = true;
+	}*/
+	string* str = new string();
+	int* ret= new int;
+	*ret = worker.run(str) ? 1 : 0;
+	pthread_mutex_lock(&running_mutex);
+	if(solution.size()==0)
+	{
+		solution = *str;
+	}
+	pthread_mutex_unlock(&running_mutex);
+	num_threads--;
+	delete str;
+	pthread_exit((void *)ret);
 }
 
 void PuzzleSolver::solveMultyThread(int threadCount) {
@@ -287,12 +320,18 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 			arg.movesRequired = movesRequired;
 			arg.node=node;
 			pthread_t thr;
-			pthread_create(&thr, &attr, &runWorker, (void*)&arg);
+			pthread_create(&thr, &attr, &runWorker1, (void*)&arg);
 			threads[i]=thr;
 		}
 		for (int i=0; i<numElements; i++) {
-			if (int l = pthread_join(threads[i], NULL)) {
+			void * ret;
+			if (int l = pthread_join(threads[i], &ret)) {
 				printf("Error thread join: %d\n", l);
+			}
+			if(*(int *)ret){
+				//this->setSolved();
+				solved = true;
+				this->path.setPath(solution);
 			}
 		}
 		if(num_threads>0)
@@ -333,25 +372,22 @@ void PuzzleSolver::loadStreamCostTable(const string filename, char* costTable,
 
 void PuzzleSolver::setInitial() {
 	solved = state.isGoal();
-	if (!costTable_15_puzzle_0 || !costTable_15_puzzle_1
-			|| !costTable_15_puzzle_2) {
-		costTable_15_puzzle_0 = new char[4096];
+		/*costTable_15_puzzle_0 = new char[4096];
 		costTable_15_puzzle_1 = new char[16777216];
-		costTable_15_puzzle_2 = new char[16777216];
+		costTable_15_puzzle_2 = new char[16777216];*/
 		loadStreamCostTable(string("databases/15-puzzle-663-0.db"),
 				costTable_15_puzzle_0, 4096);
 		loadStreamCostTable(string("databases/15-puzzle-663-1.db"),
 				costTable_15_puzzle_1, 16777216);
 		loadStreamCostTable(string("databases/15-puzzle-663-2.db"),
 				costTable_15_puzzle_2, 16777216);
-	}
 
 }
 
 PuzzleSolver::~PuzzleSolver() {
 
 	printf("Try to free\n");
-	if(costTable_15_puzzle_0!=NULL)
+	/*if(costTable_15_puzzle_0!=NULL)
 		delete[] costTable_15_puzzle_0;
 	if(costTable_15_puzzle_1!=NULL)
 		delete[] costTable_15_puzzle_1;
@@ -359,7 +395,7 @@ PuzzleSolver::~PuzzleSolver() {
 		delete[] costTable_15_puzzle_2;
 	costTable_15_puzzle_0=NULL;
 	costTable_15_puzzle_1=NULL;
-	costTable_15_puzzle_2=NULL;
+	costTable_15_puzzle_2=NULL;*/
 	printf("Memory is free\n");
 }
 

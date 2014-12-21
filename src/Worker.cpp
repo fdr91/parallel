@@ -66,6 +66,27 @@ bool Worker::run() {
 
 }
 
+bool Worker::run(std::string* retval) {
+	depthFirstSearch(currentState, fromDirection, depth, pos);
+	bool ret=false;
+	pthread_mutex_lock(&running_mutex);
+	if (solved && !terminationFlag) {
+		/*if (parrent->setSolved()) {
+		 parrent->setPath(this->path);
+		 printf("Solved. The path size is %d\n", this->path.size());
+		 }*/
+		std::string finalPath=finalize(path.getPath());
+		this->path.setPath(finalPath);
+		//parrent->setPath(this->path);
+		ret = solved;
+		*retval = std::string(path.getPath());
+	}
+	pthread_mutex_unlock(&running_mutex);
+	return ret;
+
+}
+
+
 std::string Worker::finalize(std::string _p){
 	std::string p(_p);
 	int endIndex;
@@ -83,16 +104,16 @@ std::string Worker::finalize(std::string _p){
 
 void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 		const int depth, const int pos) {
-	if (parrent->getSolved())
+	if (parrent!=NULL && parrent->getSolved())
 		return;
 	this->startIndex = path.getPath().length();
 	if (currentState.isGoal()) {
 		pthread_mutex_lock(&running_mutex);
-		if (parrent->setSolved()) {
+		//if (parrent->setSolved()) {
 			solved = true;
 			path.append(fromDirection);
 			printf("Solved\n");
-		}
+		//}
 		pthread_mutex_unlock(&running_mutex);
 		if (!solved)
 			this->terminationFlag = true;
@@ -105,7 +126,7 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 	if (fromDirection != 'R') {
 		BoardState successor = currentState.moveLeft();
 		if (successor.getLong() != 0) {
-			if (posPlusOne + parrent->h(successor) <= depth) {
+			if (posPlusOne + PuzzleSolver::h(successor) <= depth) {
 				depthFirstSearch(successor, 'L', depth, posPlusOne);
 			}
 			if (terminationFlag) {
@@ -124,7 +145,7 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 		BoardState successor = currentState.moveRight();
 		if (successor.getLong() != 0) {
 
-			if (posPlusOne + parrent->h(successor) <= depth) {
+			if (posPlusOne + PuzzleSolver::h(successor) <= depth) {
 				depthFirstSearch(successor, 'R', depth, posPlusOne);
 			}
 
@@ -142,7 +163,7 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 	if (fromDirection != 'D') {
 		BoardState successor = currentState.moveUp();
 		if (successor.getLong() != 0) {
-			if (posPlusOne + parrent->h(successor) <= depth) {
+			if (posPlusOne + PuzzleSolver::h(successor) <= depth) {
 				depthFirstSearch(successor, 'U', depth, posPlusOne);
 			}
 
@@ -160,7 +181,7 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 	if (fromDirection != 'U') {
 		BoardState successor = currentState.moveDown();
 		if (successor.getLong() != 0) {
-			if (posPlusOne + parrent->h(successor) <= depth) {
+			if (posPlusOne + PuzzleSolver::h(successor) <= depth) {
 				depthFirstSearch(successor, 'D', depth, posPlusOne);
 			}
 
