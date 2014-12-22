@@ -221,11 +221,8 @@ typedef struct ThreadArg {
 	string ret;
 }THREAD_ARG, *PTHREAD_ARG;
 
-int num_threads = 0;
-volatile bool ssolved = false;
 
 void * PuzzleSolver::runWorker1(void * _arg) {
-	num_threads++;
 	PTHREAD_ARG arg = (THREAD_ARG*) _arg;
 	Worker worker;
 	worker.setConfig(arg->node.getState(), arg->node, arg->node.getDirection(),
@@ -235,9 +232,9 @@ void * PuzzleSolver::runWorker1(void * _arg) {
 	*ret = worker.run() ? 1 : 0;
 	if (*ret)
 		arg->ret = worker.getSolution();
-	num_threads--;
 	pthread_exit((void *) ret);
 }
+
 
 void PuzzleSolver::solveMultyThread(int threadCount) {
 	printf("Multy thread solving with thread count = %d\n", threadCount);
@@ -246,7 +243,6 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 	initialMovesEstimate = movesRequired = h(this->puzzle);
 	int numElements = list.size();
 	std::list<Path>::iterator pp = list.begin();
-	ssolved = false;
 	while (!solved) {
 		pthread_t threads[64];
 		printf("Searching paths of length %d moves\n", movesRequired);
@@ -254,7 +250,6 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 		PTHREAD_ARG args[numElements];
 		for (int i = 0; i < numElements; i++, ++it) {
 			Path node(*it);
-			//THREAD_ARG arg;
 			args[i] = new THREAD_ARG;
 			args[i]->movesRequired = movesRequired;
 			args[i]->node = node;
@@ -275,10 +270,6 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 				this->path.setPath(args[i]->ret);
 			}
 			delete args[i];
-		}
-		if (num_threads > 0) {
-			printf("Threads remained: %d", num_threads);
-			throw num_threads;
 		}
 		if (!solved) {
 			movesRequired += 2;
