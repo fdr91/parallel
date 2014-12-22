@@ -25,14 +25,14 @@ Worker::Worker(PuzzleSolver *parrent) {
 
 }
 
-void Worker::setConfig(BoardState currentState, Path path, char from, int depth,
-		int pos) {
-	this->currentState = BoardState(currentState);
+
+void Worker::setConfig(Path& path, int depth) {
+	this->currentState = path.getState();
 	this->depth = depth;
-	this->pos = pos;
+	this->pos = path.getPath().length()-1;
 	this->solved = currentState.isGoal();
-	this->path = Path(path);
-	this->fromDirection = from;
+	this->path = path;
+	this->fromDirection = path.getDirection();
 }
 
 int Worker::isSolved() {
@@ -58,7 +58,7 @@ bool Worker::run() {
 
 std::string Worker::finalize(std::string _p){
 	std::string p(_p);
-	int endIndex;
+	int endIndex=0;
 	if(*(p.end()-1)=='X')
 		endIndex=-2;
 	std::string ret = p.substr(startIndex, p.length()-endIndex);
@@ -135,7 +135,6 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 				return;
 			}
 			if (solved) {
-				//path.set(pos,fromDirection);
 				path.append(fromDirection);
 				return;
 			}

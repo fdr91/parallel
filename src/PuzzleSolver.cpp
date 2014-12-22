@@ -22,22 +22,11 @@ char PuzzleSolver::costTable_15_puzzle_0[4096];
 char PuzzleSolver::costTable_15_puzzle_1[16777216];
 char PuzzleSolver::costTable_15_puzzle_2[16777216];
 
-pthread_mutex_t running_mutex =
-						PTHREAD_MUTEX_INITIALIZER;
 
 bool PuzzleSolver::getSolved() {
 	return solved;
 }
-bool PuzzleSolver::setSolved() {
-	bool ret = false;
-	if (!solved) {
-		ret = true;
-		solved = true;
-	}
-	return ret;
-}
-
-int PuzzleSolver::h(BoardState bs) {
+int PuzzleSolver::h(BoardState& bs) {
 	int64_t boardConfig = bs.getLong();
 	int index0 = 0, index1 = 0, index2 = 0;
 	for (int pos = 16 - 1; pos >= 0; --pos) {
@@ -64,7 +53,7 @@ int PuzzleSolver::h(BoardState bs) {
 Path PuzzleSolver::getPath() {
 	return this->path;
 }
-void PuzzleSolver::setPath(Path p) {
+void PuzzleSolver::setPath(Path& p) {
 	this->path = p;
 }
 
@@ -85,7 +74,7 @@ void PuzzleSolver::reset(const char* _p) {
 	state = BoardState(p);
 }
 
-PuzzleSolver::PuzzleSolver(const char* _p) {
+PuzzleSolver::PuzzleSolver(const std::string &_p) {
 	BoardState p(_p);
 	initialMovesEstimate = 0;
 	movesRequired = 0;
@@ -100,16 +89,20 @@ void PuzzleSolver::solveSingleThread() {
 	Worker worker(this);
 	do {
 		printf("Searching path of depth %d...\n", movesRequired);
-		Path p;
-		worker.setConfig(puzzle, p, 'X', movesRequired, 0);
+		Path p(puzzle);
+		worker.setConfig(p, movesRequired);
 		worker.run();
-		if (!solved) {
+		if (!worker.isSolved()) {
 			movesRequired += 2;
+		} else {
+			string str = worker.getSolution();
+			this->path.setPath(str);
+			solved = true;
 		}
 	}while (!solved);
 }
 
-void PuzzleSolver::completeBFS(Path currentNode) {
+void PuzzleSolver::completeBFS(Path& currentNode) {
 	this->path = Path(currentNode);
 	this->solved = true;
 }
@@ -128,7 +121,7 @@ void PuzzleSolver::putToQueue(Path* path, map<int64_t, Path>* m,
 	}
 }
 
-void PuzzleSolver::findStartingPositions(BoardState state,
+void PuzzleSolver::findStartingPositions(BoardState& state,
 		size_t tc, std::list<Path> &list) {
 	Path currentNode(state);
 	map<int64_t, Path> m;
@@ -214,19 +207,13 @@ void PuzzleSolver::findStartingPositions(BoardState state,
 
 }
 
-typedef struct ThreadArg {
-	PuzzleSolver *parrent;
-	Path node;
-	int movesRequired;
-	string ret;
-}THREAD_ARG, *PTHREAD_ARG;
+
 
 
 void * PuzzleSolver::runWorker1(void * _arg) {
 	PTHREAD_ARG arg = (THREAD_ARG*) _arg;
 	Worker worker;
-	worker.setConfig(arg->node.getState(), arg->node, arg->node.getDirection(),
-			arg->movesRequired, arg->node.size() - 1);
+	worker.setConfig(arg->node,	arg->movesRequired);
 
 	int* ret = new int;
 	*ret = worker.run() ? 1 : 0;
@@ -244,7 +231,7 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 	int numElements = list.size();
 	std::list<Path>::iterator pp = list.begin();
 	while (!solved) {
-		pthread_t threads[64];
+		pthread_t* threads = new pthread_t[numElements];
 		printf("Searching paths of length %d moves\n", movesRequired);
 		std::list<Path>::iterator it = list.begin();
 		PTHREAD_ARG* args = new PTHREAD_ARG[numElements];
@@ -259,7 +246,7 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 			threads[i] = thr;
 		}
 		for (int i = 0; i < numElements; i++) {
-			void * ret;
+			void * ret=0;
 			if (int l = pthread_join(threads[i], &ret)) {
 				printf("Error thread join: %d\n", l);
 			}
@@ -270,7 +257,9 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 				this->path.setPath(args[i]->ret);
 			}
 			delete args[i];
+
 		}
+		delete [] threads;
 		delete [] args;
 		if (!solved) {
 			movesRequired += 2;
@@ -280,14 +269,16 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 
 void PuzzleSolver::solve(int t) {
 	setInitial();
-	if (t != 0)
+	if (t >1)
 		solveMultyThread(t);
-	else {
+	else if (t==1){
 		solveSingleThread();
+	} else {
+		throw 5;
 	}
 }
 
-void PuzzleSolver::loadStreamCostTable(const string filename, char* costTable,
+void PuzzleSolver::loadStreamCostTable(const string& filename, char* costTable,
 		int size) {
 
 	ifstream is(filename);
@@ -313,6 +304,6 @@ void PuzzleSolver::setInitial() {
 }
 
 PuzzleSolver::~PuzzleSolver() {
-	printf("Destruct PS");
+	printf("Destruct PS\n");
 }
 

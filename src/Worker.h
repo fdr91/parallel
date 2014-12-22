@@ -29,10 +29,10 @@ public:
 	//bool run(std::string* retval);
 	int isSolved();
 	std::string getSolution();
-	void setConfig(BoardState currentState, Path path, char from, int depth, int pos);
 	void depthFirstSearch(BoardState currentState,
 			const char fromDirection, const int depth, const int pos);
 	Worker(PuzzleSolver* parrent);
+	void setConfig(Path& path, int depth);
 	bool run();
 	virtual ~Worker();
 };

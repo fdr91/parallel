@@ -14,11 +14,8 @@
 
 using namespace std;
 
-int Path::count;
-
 Path::Path(BoardState& bs) {
 
-	myId=count++;
 	nll = false;
 	this->state = BoardState(bs);
 	this->p+=('X');
@@ -30,20 +27,15 @@ int64_t Path::stateAsL() {
 }
 
 Path::Path() {
-	this->p+=('X');
-	myId=count++;
-	//printf("Construct %d\n", myId);
 	nll = false;
 	this->direction = 'X';
 }
 
 Path::Path(const Path& path) {
-	myId=count++;
-	//printf("Construct %d\n", myId);
 	nll = false;
-	this->p = string(path.p);
+	this->p = path.p;
 	this->direction = path.direction;
-	this->state=BoardState(path.state);
+	this->state=path.state;
 }
 
 bool Path::isSolved() {
@@ -58,9 +50,7 @@ void Path::setPath(std::string& p){
 	this->p= p;
 }
 
-Path::~Path() {
-	//printf("Destruct %d\n", myId);
-}
+Path::~Path() {}
 
 void Path::set(int index, char val) {
 	if (this->p.size() < (size_t) index + 1) {
@@ -77,9 +67,8 @@ void Path::append(char c){
 	this->p+=c;
 }
 
-std::vector<std::string> Path::getDirections(string initState) {
+std::vector<std::string> Path::getDirections(string& initState) {
 	int pathLength = p.length();
-	//p=p.substr(1, pathLength);
 	if(*(p.begin())=='X'){
 		p.erase(0, 1);
 		--pathLength;
@@ -181,11 +170,35 @@ bool Path::isNull() {
 
 void Path::cp(Path *ret) {
 	ret->direction = this->direction;
-	ret->p = string(this->p);
+	ret->p = this->p;
 	ret->nll = this->nll;
-	ret->state = BoardState(this->state);
+	ret->state = this->state;
 }
 
+
+bool Path::moveLeft() {
+	const int posOfSpace = state.posOfSpace();
+	if (posOfSpace % DIMENSION == 0) {
+		this->setNull();
+		return false;
+	}
+
+	// Swap tile with space.
+	const int posTimes4 = posOfSpace << 2, posMinusOneTimes4 = (posOfSpace - 1)
+			<< 2;
+	const int64_t space = (this->stateAsL() >> posTimes4) & 0xF, tile =
+			(this->stateAsL() >> posMinusOneTimes4) & 0xF;
+
+	const int64_t zeroBitTile = (int64_t) 0xF << posMinusOneTimes4;
+	this->setState(
+			(this->stateAsL() & ~zeroBitTile) | (tile << posTimes4)
+					| (space << posMinusOneTimes4));
+	this->direction = 'L';
+
+	this->p += ('L');
+
+	return true;
+}
 
 bool Path::moveLeftNode(Path* ret) {
 	const int posOfSpace = state.posOfSpace();
@@ -193,7 +206,6 @@ bool Path::moveLeftNode(Path* ret) {
 		ret->setNull();
 		return false;
 	}
-	cp(ret);
 
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posMinusOneTimes4 = (posOfSpace - 1)
@@ -209,6 +221,28 @@ bool Path::moveLeftNode(Path* ret) {
 
 	ret->p += ('L');
 
+	return true;
+}
+
+bool Path::moveRight() {
+	const int posOfSpace = state.posOfSpace(), posPlusOne = posOfSpace + 1;
+	if (posPlusOne % DIMENSION == 0) {
+		this->setNull();
+		return false;
+	}
+
+	// Swap tile with space.
+	const int posTimes4 = posOfSpace << 2, posPlusOneTimes4 = posPlusOne << 2;
+	const int64_t space = (this->stateAsL() >> posTimes4) & 0xF, tile =
+			(this->stateAsL() >> posPlusOneTimes4) & 0xF;
+
+	const int64_t zeroBitTile = (int64_t) 0xF << posPlusOneTimes4;
+	this->setState(
+			(this->stateAsL() & ~zeroBitTile) | (tile << posTimes4)
+					| (space << posPlusOneTimes4));
+	this->direction = 'R';
+	this->p += ('R');
+	this->nll = false;
 	return true;
 }
 
@@ -232,6 +266,28 @@ bool Path::moveRightNode(Path* ret) {
 	ret->direction = 'R';
 	ret->p += ('R');
 	ret->nll = false;
+	return true;
+}
+
+bool Path::moveUp() {
+	const int posOfSpace = state.posOfSpace();
+	if (posOfSpace < DIMENSION) {
+		this->nll = true;
+		return false;
+	}
+
+	// Swap tile with space.
+	const int posTimes4 = posOfSpace << 2, posMinusDimTimes4 = (posOfSpace
+			- DIMENSION) << 2;
+	const int64_t space = (this->stateAsL() >> posTimes4) & 0xF, tile =
+			(this->stateAsL() >> posMinusDimTimes4) & 0xF;
+
+	const int64_t zeroBitTile = (int64_t) 0xF << posMinusDimTimes4;
+	this->setState( (this->stateAsL() & ~zeroBitTile) | (tile << posTimes4)
+			| (space << posMinusDimTimes4));
+	this->direction = 'U';
+	this->p += ('U');
+	this->nll = false;
 	return true;
 }
 
@@ -259,11 +315,32 @@ bool Path::moveUpNode(Path* ret) {
 }
 
 std::string Path::getPath(){
-	return string(p);
+	return p;
 }
 
 BoardState Path::getState(){
-	return BoardState(this->state);
+	return this->state;
+}
+
+bool Path::moveDown() {
+	const int posOfSpace = state.posOfSpace();
+	if (posOfSpace >= NUM_OF_TILES - DIMENSION) {
+		this->nll = true;
+		return false;
+	}
+	// Swap tile with space.
+	const int posTimes4 = posOfSpace << 2, posPlusDimTimes4 = (posOfSpace
+			+ DIMENSION) << 2;
+	const int64_t space = (this->stateAsL() >> posTimes4) & 0xF, tile =
+			(this->stateAsL() >> posPlusDimTimes4) & 0xF;
+
+	const int64_t zeroBitTile = (int64_t) 0xF << posPlusDimTimes4;
+	this->setState((this->stateAsL() & ~zeroBitTile) | (tile << posTimes4)
+			| (space << posPlusDimTimes4));
+	this->direction = 'D';
+	this->p += ('D');
+	this->nll = false;
+	return true;
 }
 
 bool Path::moveDownNode(Path* ret) {
@@ -286,6 +363,30 @@ bool Path::moveDownNode(Path* ret) {
 	ret->direction = 'D';
 	ret->p += ('D');
 	ret->nll = false;
+	return true;
+}
+
+bool Path::checkPath(std::string initState, std::string pstr) {
+	Path p(BoardState(initState));
+
+	for(std::string::iterator it = pstr.begin(); it!=pstr.end(); it++){
+		switch(*it){
+		case 'U':
+			//printf("down\n");
+			p.moveDown();
+			break;
+		case 'D':
+			//printf("up\n");
+			break;
+		case 'R':
+			//printf("left\n");
+			break;
+		case 'L':
+			//printf("right\n");
+			break;
+		default: return false;
+		}
+	}
 	return true;
 }
 

@@ -55,7 +55,7 @@ void BoardState::getTileArray(std::string* tileOrder, std::vector<char> *tileArr
 	if (tileArray->size() != 16)
 		throw invalid_argument("Wrong tiles");
 
-	for(int i=0; i<tileArray->size(); i++){
+	for(size_t i=0; i<tileArray->size(); i++){
 		char val = tileArray->at(i);
 		if (val > 15 || val < 0)
 			throw invalid_argument("Wrong tiles");
@@ -68,7 +68,7 @@ void BoardState::getTileArray(std::string* tileOrder, std::vector<char> *tileArr
 
 int64_t BoardState::arrayToLong(std::vector<char> state) {
 	int64_t value = 0;
-	for (int i = 0; i < state.size(); ++i) {
+	for (size_t i = 0; i < state.size(); ++i) {
 		value |= ((int64_t) state[i] << (i << 2));
 	}
 	return value;

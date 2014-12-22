@@ -17,18 +17,16 @@ class Path {
 	BoardState state;
 	char direction;
 	bool nll;
-	int myId;
-	static int count;
 
 public:
-
+	static bool checkPath(std::string initState,std::string pstr);
 	Path();
 	Path(BoardState& bs);
 	Path(const Path& path);
 	char get(int i);
 	void set(int index, char val);
 	int size();
-	std::vector<std::string> getDirections(std::string initState);
+	std::vector<std::string> getDirections(std::string& initState);
 	int64_t stateAsL();
 	bool isSolved();
 	bool isNull();
@@ -39,6 +37,10 @@ public:
 	bool moveRightNode(Path* right);
 	bool moveDownNode(Path* down);
 	bool moveUpNode(Path* up);
+	bool moveLeft();
+	bool moveRight();
+	bool moveDown();
+	bool moveUp();
 	void cp(Path* ret);
 	void setState(int64_t s);
 	std::string getPath();

@@ -14,6 +14,9 @@
 #include <pthread.h>
 #include <map>
 
+
+
+
 class PuzzleSolver {
 	BoardState puzzle;
 	BoardState state;
@@ -28,31 +31,36 @@ class PuzzleSolver {
 	int initialMovesEstimate, movesRequired;
 
 	Path path;
-	//static std::string solution;
 
-	void loadStreamCostTable(const std::string filename, char* costTable, int size);
+	void loadStreamCostTable(const std::string& filename, char* costTable, int size);
 
-	static int tilePositions [16];// = {-1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5, 4, 5};
-	static int tileSubsets [16];// = {-1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2, 2};
-	void completeBFS(Path p);
+	static int tilePositions [16];
+	static int tileSubsets [16];
+	void completeBFS(Path& p);
 	void putToQueue(Path* path, std::map<int64_t, Path>* m,  std::list<Path>& list);
 public:
-	static int h(BoardState);
+	static int h(BoardState&);
 	PuzzleSolver();
 	void reset(const char* puzzle);
-	PuzzleSolver(const char* puzzle);
+	PuzzleSolver(const std::string& puzzle);
 	PuzzleSolver(BoardState& puzzle);
 	Path getPath();
-	void setPath(Path p);
+	void setPath(Path& p);
 	bool getSolved();
-	bool setSolved();
 	void solve(int t);
 	void solveSingleThread();
 	void solveMultyThread(int threadCount);
 	void setInitial();
-	void findStartingPositions(BoardState state, size_t tc, std::list<Path>& list);
+	void findStartingPositions(BoardState& state, size_t tc, std::list<Path>& list);
 	virtual ~PuzzleSolver();
 	static void * runWorker1(void*);
 };
+
+typedef struct ThreadArg {
+	PuzzleSolver *parrent;
+	Path node;
+	int movesRequired;
+	std::string ret;
+}THREAD_ARG, *PTHREAD_ARG;
 
 #endif /* PUZZLESOLVER_H_ */
