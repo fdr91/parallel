@@ -247,7 +247,7 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 		pthread_t threads[64];
 		printf("Searching paths of length %d moves\n", movesRequired);
 		std::list<Path>::iterator it = list.begin();
-		PTHREAD_ARG args[numElements];
+		PTHREAD_ARG* args = new PTHREAD_ARG[numElements];
 		for (int i = 0; i < numElements; i++, ++it) {
 			Path node(*it);
 			args[i] = new THREAD_ARG;
@@ -271,6 +271,7 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 			}
 			delete args[i];
 		}
+		delete [] args;
 		if (!solved) {
 			movesRequired += 2;
 		}
