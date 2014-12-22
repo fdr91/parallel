@@ -10,22 +10,20 @@
 #include <fstream>
 #include <map>
 #include "Worker.h"
- #include <time.h>
+#include <time.h>
 
 using namespace std;
 
-int PuzzleSolver::tilePositions[] = {-1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5, 4, 5};
-int PuzzleSolver::tileSubsets  []= {-1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2, 2};
+int PuzzleSolver::tilePositions[] = { -1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5,
+		4, 5 };
+int PuzzleSolver::tileSubsets[] = { -1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1,
+		2, 2 };
 char PuzzleSolver::costTable_15_puzzle_0[4096];
 char PuzzleSolver::costTable_15_puzzle_1[16777216];
 char PuzzleSolver::costTable_15_puzzle_2[16777216];
 
-pthread_mutex_t running_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t solved_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-/*char* PuzzleSolver::costTable_15_puzzle_0 = NULL;
- char* PuzzleSolver::costTable_15_puzzle_1 = NULL;
- char* PuzzleSolver::costTable_15_puzzle_2 = NULL;*/
+pthread_mutex_t running_mutex =
+						PTHREAD_MUTEX_INITIALIZER;
 
 bool PuzzleSolver::getSolved() {
 	return solved;
@@ -40,9 +38,6 @@ bool PuzzleSolver::setSolved() {
 }
 
 int PuzzleSolver::h(BoardState bs) {
-
-	// Create three different indexes that contain only the positions of
-	// tiles applicable to the corresponding pattern database.
 	int64_t boardConfig = bs.getLong();
 	int index0 = 0, index1 = 0, index2 = 0;
 	for (int pos = 16 - 1; pos >= 0; --pos) {
@@ -50,20 +45,20 @@ int PuzzleSolver::h(BoardState bs) {
 		if (tile != 0) {
 			const int subsetNumber = tileSubsets[tile];
 			switch (subsetNumber) {
-			case 2:
+				case 2:
 				index2 |= pos << (tilePositions[tile] << 2);
 				break;
-			case 1:
+				case 1:
 				index1 |= pos << (tilePositions[tile] << 2);
 				break;
-			default:
+				default:
 				index0 |= pos << (tilePositions[tile] << 2);
 				break;
 			}
 		}
 	}
 	return costTable_15_puzzle_0[index0] + costTable_15_puzzle_1[index1]
-			+ costTable_15_puzzle_2[index2];
+	+ costTable_15_puzzle_2[index2];
 }
 
 Path PuzzleSolver::getPath() {
@@ -76,9 +71,6 @@ void PuzzleSolver::setPath(Path p) {
 PuzzleSolver::PuzzleSolver() {
 	initialMovesEstimate = 0;
 	movesRequired = 0;
-	/*costTable_15_puzzle_0 = NULL;
-	costTable_15_puzzle_1 = NULL;
-	costTable_15_puzzle_2 = NULL;*/
 	threadCount = -1;
 	solved = false;
 }
@@ -93,22 +85,6 @@ void PuzzleSolver::reset(const char* _p) {
 	state = BoardState(p);
 }
 
-/*PuzzleSolver::PuzzleSolver(const PuzzleSolver& i) {
- costTable_15_puzzle_0 = NULL;
- costTable_15_puzzle_1 = NULL;
- costTable_15_puzzle_2 = NULL;
- this->initialMovesEstimate = i.initialMovesEstimate;
- this->movesRequired = i.movesRequired;
- this->path = i.path;
- this->puzzle = i.puzzle;
- this->running_mutex = PTHREAD_MUTEX_INITIALIZER; //???
- this->solved = i.solved;
- this->state = i.state;
- this->threadCount = i.threadCount;
- }*/
-
-
-
 PuzzleSolver::PuzzleSolver(const char* _p) {
 	BoardState p(_p);
 	initialMovesEstimate = 0;
@@ -117,10 +93,6 @@ PuzzleSolver::PuzzleSolver(const char* _p) {
 	threadCount = -1;
 	puzzle = BoardState(p);
 	state = BoardState(p);
-	/*costTable_15_puzzle_0 = NULL;
-	costTable_15_puzzle_1 = NULL;
-	costTable_15_puzzle_2 = NULL;*/
-
 }
 
 void PuzzleSolver::solveSingleThread() {
@@ -134,7 +106,7 @@ void PuzzleSolver::solveSingleThread() {
 		if (!solved) {
 			movesRequired += 2;
 		}
-	} while (!solved);
+	}while (!solved);
 }
 
 void PuzzleSolver::completeBFS(Path currentNode) {
@@ -142,7 +114,8 @@ void PuzzleSolver::completeBFS(Path currentNode) {
 	this->solved = true;
 }
 
-void PuzzleSolver::putToQueue(Path* path, map<int64_t, Path>* m, std::list<Path>& list) {
+void PuzzleSolver::putToQueue(Path* path, map<int64_t, Path>* m,
+		std::list<Path>& list) {
 	int64_t hash = path->stateAsL();
 	map<int64_t, Path>::iterator it = m->find(hash);
 	if (it == m->end()) {
@@ -155,7 +128,8 @@ void PuzzleSolver::putToQueue(Path* path, map<int64_t, Path>* m, std::list<Path>
 	}
 }
 
-void PuzzleSolver::findStartingPositions(BoardState state, int tc, std::list<Path> &list) {
+void PuzzleSolver::findStartingPositions(BoardState state,
+		size_t tc, std::list<Path> &list) {
 	Path currentNode(state);
 	map<int64_t, Path> m;
 	if (currentNode.isSolved()) {
@@ -240,57 +214,29 @@ void PuzzleSolver::findStartingPositions(BoardState state, int tc, std::list<Pat
 
 }
 
-typedef struct ThreadArg{
+typedef struct ThreadArg {
 	PuzzleSolver *parrent;
 	Path node;
 	int movesRequired;
-	string* ret;
-} THREAD_ARG, *PTHREAD_ARG;
+	string ret;
+}THREAD_ARG, *PTHREAD_ARG;
 
-int num_threads=0;
-volatile bool ssolved=false;
+int num_threads = 0;
+volatile bool ssolved = false;
 
-string solution("");
-
-void * runWorker(void * _arg) {
+void * PuzzleSolver::runWorker1(void * _arg) {
 	num_threads++;
-	PTHREAD_ARG arg = (THREAD_ARG*)_arg;
-
-	//Worker* dw = (Worker*) arg;
-	Worker worker(arg->parrent);
-	worker.setConfig(arg->node.getState(), arg->node, arg->node.getDirection(), arg->movesRequired, arg->node.size() - 1);
-	/*if(worker.run()){
-		ssolved = true;
-	}*/
-
-	worker.run();
-	num_threads--;
-	pthread_exit(0);
-	return 0;
-}
-
-void * runWorker1(void * _arg) {
-	num_threads++;
-	PTHREAD_ARG arg = (THREAD_ARG*)_arg;
-
-	//Worker* dw = (Worker*) arg;
+	PTHREAD_ARG arg = (THREAD_ARG*) _arg;
 	Worker worker;
-	worker.setConfig(arg->node.getState(), arg->node, arg->node.getDirection(), arg->movesRequired, arg->node.size() - 1);
-	/*if(worker.run()){
-		ssolved = true;
-	}*/
-	string* str = new string();
-	int* ret= new int;
-	*ret = worker.run(str) ? 1 : 0;
-	pthread_mutex_lock(&running_mutex);
-	if(solution.size()==0)
-	{
-		solution = *str;
-	}
-	pthread_mutex_unlock(&running_mutex);
+	worker.setConfig(arg->node.getState(), arg->node, arg->node.getDirection(),
+			arg->movesRequired, arg->node.size() - 1);
+
+	int* ret = new int;
+	*ret = worker.run() ? 1 : 0;
+	if (*ret)
+		arg->ret = worker.getSolution();
 	num_threads--;
-	delete str;
-	pthread_exit((void *)ret);
+	pthread_exit((void *) ret);
 }
 
 void PuzzleSolver::solveMultyThread(int threadCount) {
@@ -300,42 +246,40 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 	initialMovesEstimate = movesRequired = h(this->puzzle);
 	int numElements = list.size();
 	std::list<Path>::iterator pp = list.begin();
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	uint64_t sz=0;
-	pthread_attr_getstacksize(&attr, &sz);
-	pthread_attr_setstacksize(&attr, 8*16777216 );
-	pthread_attr_getguardsize(&attr, &sz);
-	pthread_attr_setguardsize(&attr, 4*16777216);
-	printf("sz = %ld\n", sz);
 	ssolved = false;
 	while (!solved) {
 		pthread_t threads[64];
 		printf("Searching paths of length %d moves\n", movesRequired);
 		std::list<Path>::iterator it = list.begin();
-		for(int i=0; i<numElements; i++, ++it){
+		PTHREAD_ARG args[numElements];
+		for (int i = 0; i < numElements; i++, ++it) {
 			Path node(*it);
-			THREAD_ARG arg;
-			arg.parrent=this;
-			arg.movesRequired = movesRequired;
-			arg.node=node;
+			//THREAD_ARG arg;
+			args[i] = new THREAD_ARG;
+			args[i]->movesRequired = movesRequired;
+			args[i]->node = node;
 			pthread_t thr;
-			pthread_create(&thr, &attr, &runWorker1, (void*)&arg);
-			threads[i]=thr;
+			pthread_create(&thr, NULL, &PuzzleSolver::runWorker1,
+					(void*) args[i]);
+			threads[i] = thr;
 		}
-		for (int i=0; i<numElements; i++) {
+		for (int i = 0; i < numElements; i++) {
 			void * ret;
 			if (int l = pthread_join(threads[i], &ret)) {
 				printf("Error thread join: %d\n", l);
 			}
-			if(*(int *)ret){
-				//this->setSolved();
+			if (*(int *) ret) {
+				printf("Set solved flag in main thread. Iteration: %d\n",
+						movesRequired);
 				solved = true;
-				this->path.setPath(solution);
+				this->path.setPath(args[i]->ret);
 			}
+			delete args[i];
 		}
-		if(num_threads>0)
+		if (num_threads > 0) {
+			printf("Threads remained: %d", num_threads);
 			throw num_threads;
+		}
 		if (!solved) {
 			movesRequired += 2;
 		}
@@ -344,17 +288,11 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 
 void PuzzleSolver::solve(int t) {
 	setInitial();
-	//if (t == 1) {
-		//solveSingleThread();
-	//} else if (t > 1) {
-	if(t!=0)
+	if (t != 0)
 		solveMultyThread(t);
-	else{
+	else {
 		solveSingleThread();
 	}
-	//} else {
-	//	throw invalid_argument("Wrong thread count");
-	//}
 }
 
 void PuzzleSolver::loadStreamCostTable(const string filename, char* costTable,
@@ -365,6 +303,7 @@ void PuzzleSolver::loadStreamCostTable(const string filename, char* costTable,
 		is.read(costTable, size);
 		is.close();
 	} else {
+		printf("Error when loading cost table");
 		throw 1;
 	}
 	is.close();
@@ -372,30 +311,16 @@ void PuzzleSolver::loadStreamCostTable(const string filename, char* costTable,
 
 void PuzzleSolver::setInitial() {
 	solved = state.isGoal();
-		/*costTable_15_puzzle_0 = new char[4096];
-		costTable_15_puzzle_1 = new char[16777216];
-		costTable_15_puzzle_2 = new char[16777216];*/
-		loadStreamCostTable(string("databases/15-puzzle-663-0.db"),
-				costTable_15_puzzle_0, 4096);
-		loadStreamCostTable(string("databases/15-puzzle-663-1.db"),
-				costTable_15_puzzle_1, 16777216);
-		loadStreamCostTable(string("databases/15-puzzle-663-2.db"),
-				costTable_15_puzzle_2, 16777216);
+	loadStreamCostTable(string("databases/15-puzzle-663-0.db"),
+			costTable_15_puzzle_0, 4096);
+	loadStreamCostTable(string("databases/15-puzzle-663-1.db"),
+			costTable_15_puzzle_1, 16777216);
+	loadStreamCostTable(string("databases/15-puzzle-663-2.db"),
+			costTable_15_puzzle_2, 16777216);
 
 }
 
 PuzzleSolver::~PuzzleSolver() {
-
-	printf("Try to free\n");
-	/*if(costTable_15_puzzle_0!=NULL)
-		delete[] costTable_15_puzzle_0;
-	if(costTable_15_puzzle_1!=NULL)
-		delete[] costTable_15_puzzle_1;
-	if(costTable_15_puzzle_2!=NULL)
-		delete[] costTable_15_puzzle_2;
-	costTable_15_puzzle_0=NULL;
-	costTable_15_puzzle_1=NULL;
-	costTable_15_puzzle_2=NULL;*/
-	printf("Memory is free\n");
+	printf("Destruct PS");
 }
 

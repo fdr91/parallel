@@ -28,7 +28,7 @@ class PuzzleSolver {
 	int initialMovesEstimate, movesRequired;
 
 	Path path;
-
+	//static std::string solution;
 
 	void loadStreamCostTable(const std::string filename, char* costTable, int size);
 
@@ -39,7 +39,6 @@ class PuzzleSolver {
 public:
 	static int h(BoardState);
 	PuzzleSolver();
-//	PuzzleSolver(const PuzzleSolver& i);
 	void reset(const char* puzzle);
 	PuzzleSolver(const char* puzzle);
 	PuzzleSolver(BoardState& puzzle);
@@ -51,8 +50,9 @@ public:
 	void solveSingleThread();
 	void solveMultyThread(int threadCount);
 	void setInitial();
-	void findStartingPositions(BoardState state, int tc, std::list<Path>& list);
+	void findStartingPositions(BoardState state, size_t tc, std::list<Path>& list);
 	virtual ~PuzzleSolver();
+	static void * runWorker1(void*);
 };
 
 #endif /* PUZZLESOLVER_H_ */

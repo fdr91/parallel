@@ -20,12 +20,15 @@ class Worker {
 	bool solved;
 	char fromDirection;
 	bool terminationFlag=false;
+	//std::string startPath;
 	int startIndex;
 	std::string finalize(std::string p);
+
 public:
 	Worker();
-	bool run(std::string* retval);
+	//bool run(std::string* retval);
 	int isSolved();
+	std::string getSolution();
 	void setConfig(BoardState currentState, Path path, char from, int depth, int pos);
 	void depthFirstSearch(BoardState currentState,
 			const char fromDirection, const int depth, const int pos);

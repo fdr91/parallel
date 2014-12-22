@@ -1,19 +1,12 @@
-/*
- * Worker.cpp
- *
- *  Created on: Dec 19, 2014
- *      Author: fedor
- */
-
 #include "Worker.h"
 #include <stdio.h>
 #include <algorithm>
 
-extern pthread_mutex_t running_mutex;
-extern pthread_mutex_t solved_mutex;
+//extern pthread_mutex_t running_mutex;
 
 
 Worker::Worker() {
+	startIndex=0;
 	this->parrent = NULL;
 	this->depth = -1;
 	this->pos = -1;
@@ -23,7 +16,7 @@ Worker::Worker() {
 }
 
 Worker::Worker(PuzzleSolver *parrent) {
-
+	startIndex=0;
 	this->depth = -1;
 	this->pos = -1;
 	this->solved = false;
@@ -46,42 +39,18 @@ int Worker::isSolved() {
 	return this->solved && !terminationFlag ? 1 : 0;
 }
 
+std::string Worker::getSolution(){
+	return this->path.getPath();
+}
+
 bool Worker::run() {
 	depthFirstSearch(currentState, fromDirection, depth, pos);
 	bool ret=false;
-	pthread_mutex_lock(&running_mutex);
 	if (solved && !terminationFlag) {
-		/*if (parrent->setSolved()) {
-		 parrent->setPath(this->path);
-		 printf("Solved. The path size is %d\n", this->path.size());
-		 }*/
 		std::string finalPath=finalize(path.getPath());
 		this->path.setPath(finalPath);
-		parrent->setPath(this->path);
 		ret = solved;
-
 	}
-	pthread_mutex_unlock(&running_mutex);
-	return ret;
-
-}
-
-bool Worker::run(std::string* retval) {
-	depthFirstSearch(currentState, fromDirection, depth, pos);
-	bool ret=false;
-	pthread_mutex_lock(&running_mutex);
-	if (solved && !terminationFlag) {
-		/*if (parrent->setSolved()) {
-		 parrent->setPath(this->path);
-		 printf("Solved. The path size is %d\n", this->path.size());
-		 }*/
-		std::string finalPath=finalize(path.getPath());
-		this->path.setPath(finalPath);
-		//parrent->setPath(this->path);
-		ret = solved;
-		*retval = std::string(path.getPath());
-	}
-	pthread_mutex_unlock(&running_mutex);
 	return ret;
 
 }
@@ -96,7 +65,9 @@ std::string Worker::finalize(std::string _p){
 	if(*(p.begin())=='X')
 		p.erase(p.begin());
 	std::reverse(ret.begin(), ret.end());
-	ret=p.substr(0, startIndex-2)+ret;
+	if(startIndex>1)
+		ret=p.substr(0, startIndex-2)+ret;
+
 	printf("%s\n", ret.c_str());
 	return ret;
 }
@@ -108,17 +79,12 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 		return;
 	this->startIndex = path.getPath().length();
 	if (currentState.isGoal()) {
-		pthread_mutex_lock(&running_mutex);
-		//if (parrent->setSolved()) {
 			solved = true;
 			path.append(fromDirection);
 			printf("Solved\n");
-		//}
-		pthread_mutex_unlock(&running_mutex);
 		if (!solved)
 			this->terminationFlag = true;
 		return;
-
 	}
 
 	const int posPlusOne = pos + 1;
@@ -133,7 +99,6 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 				return;
 			}
 			if (solved) {
-				//path.set(pos,fromDirection);
 				path.append(fromDirection);
 				return;
 			}
@@ -153,7 +118,6 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 				return;
 			}
 			if (solved) {
-				//path.set(pos,fromDirection);
 				path.append(fromDirection);
 				return;
 			}
@@ -201,4 +165,3 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 Worker::~Worker() {
 	// TODO Auto-generated destructor stub
 }
-

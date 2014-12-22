@@ -19,7 +19,6 @@ int Path::count;
 Path::Path(BoardState& bs) {
 
 	myId=count++;
-	//printf("Construct %d\n", myId);
 	nll = false;
 	this->state = BoardState(bs);
 	this->p+=('X');
@@ -87,10 +86,7 @@ std::vector<std::string> Path::getDirections(string initState) {
 	}
 	vector<string> directions;
 	if (pathLength != 0) {
-		//char* tiles = new char[pathLength];
-		//char* tiles = new char[p.length()-1];
 		string movedTiles;
-		//movedTiles.resize(pathLength);
 		getMovedTiles(p, initState, &movedTiles);
 		for (int i = 0; i < pathLength; ++i) {
 			const char tile = movedTiles.at(i);
@@ -105,9 +101,9 @@ std::vector<std::string> Path::getDirections(string initState) {
 			} else if (dir == 'D') {
 				direction = string("up");
 			} else {
+				printf("Throw in Path");
 				throw 0;
 			}
-			//const StringBuilder builder = new StringBuilder();
 			const int iPlusOne = i + 1;
 			char buffer[1024];
 			sprintf(buffer, "%2d. %d - %s", iPlusOne, tile, direction.c_str());
@@ -148,9 +144,11 @@ void Path::getMovedTiles(std::string& pathStr, string _initState,
 		} else if (dir == 'D') {
 			posOfTile = posOfSpace + dimension1;
 		} else {
+			printf("Throw in Path2");
 			throw 1;
 		}
 		movedTiles->at(i) = boardConfig.at(posOfTile);
+
 		char tmp = boardConfig.at(posOfSpace);
 		boardConfig.at(posOfSpace) = boardConfig.at(posOfTile);
 		boardConfig.at(posOfTile) = tmp;
@@ -205,7 +203,7 @@ bool Path::moveLeftNode(Path* ret) {
 
 	const int64_t zeroBitTile = (int64_t) 0xF << posMinusOneTimes4;
 	ret->setState(
-			ret->stateAsL() & ~zeroBitTile | (tile << posTimes4)
+			(ret->stateAsL() & ~zeroBitTile) | (tile << posTimes4)
 					| (space << posMinusOneTimes4));
 	ret->direction = 'L';
 
@@ -229,7 +227,7 @@ bool Path::moveRightNode(Path* ret) {
 
 	const int64_t zeroBitTile = (int64_t) 0xF << posPlusOneTimes4;
 	ret->setState(
-			ret->stateAsL() & ~zeroBitTile | (tile << posTimes4)
+			(ret->stateAsL() & ~zeroBitTile) | (tile << posTimes4)
 					| (space << posPlusOneTimes4));
 	ret->direction = 'R';
 	ret->p += ('R');
@@ -252,7 +250,7 @@ bool Path::moveUpNode(Path* ret) {
 			(ret->stateAsL() >> posMinusDimTimes4) & 0xF;
 
 	const int64_t zeroBitTile = (int64_t) 0xF << posMinusDimTimes4;
-	ret->setState( ret->stateAsL() & ~zeroBitTile | (tile << posTimes4)
+	ret->setState( (ret->stateAsL() & ~zeroBitTile) | (tile << posTimes4)
 			| (space << posMinusDimTimes4));
 	ret->direction = 'U';
 	ret->p += ('U');
@@ -283,7 +281,7 @@ bool Path::moveDownNode(Path* ret) {
 			(ret->stateAsL() >> posPlusDimTimes4) & 0xF;
 
 	const int64_t zeroBitTile = (int64_t) 0xF << posPlusDimTimes4;
-	ret->setState(ret->stateAsL() & ~zeroBitTile | (tile << posTimes4)
+	ret->setState((ret->stateAsL() & ~zeroBitTile) | (tile << posTimes4)
 			| (space << posPlusDimTimes4));
 	ret->direction = 'D';
 	ret->p += ('D');
