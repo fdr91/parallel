@@ -241,6 +241,7 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 			args[i]->movesRequired = movesRequired;
 			args[i]->node = node;
 			pthread_t thr;
+			printf("Start thread with initial path %s\n", node.getPath().c_str());
 			pthread_create(&thr, NULL, &PuzzleSolver::runWorker1,
 					(void*) args[i]);
 			threads[i] = thr;

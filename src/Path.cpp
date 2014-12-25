@@ -206,7 +206,7 @@ bool Path::moveLeftNode(Path* ret) {
 		ret->setNull();
 		return false;
 	}
-
+	cp(ret);
 	// Swap tile with space.
 	const int posTimes4 = posOfSpace << 2, posMinusOneTimes4 = (posOfSpace - 1)
 			<< 2;
@@ -367,27 +367,33 @@ bool Path::moveDownNode(Path* ret) {
 }
 
 bool Path::checkPath(std::string initState, std::string pstr) {
-	Path p(BoardState(initState));
+	if(*(pstr.begin())=='X')
+		pstr.erase(pstr.begin());
+	BoardState bs(initState);
+	Path p(bs);//(BoardState(initState));
 
 	for(std::string::iterator it = pstr.begin(); it!=pstr.end(); it++){
 		switch(*it){
 		case 'U':
 			//printf("down\n");
-			p.moveDown();
+			p.moveUp();
 			break;
 		case 'D':
 			//printf("up\n");
+			p.moveDown();
 			break;
 		case 'R':
 			//printf("left\n");
+			p.moveRight();
 			break;
 		case 'L':
+			p.moveLeft();
 			//printf("right\n");
 			break;
 		default: return false;
 		}
 	}
-	return true;
+	return p.isSolved();
 }
 
 Path & Path::operator = (Path const & num)
