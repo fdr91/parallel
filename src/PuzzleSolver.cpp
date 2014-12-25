@@ -11,6 +11,7 @@
 #include <map>
 #include "Worker.h"
 #include <time.h>
+#include <omp.h>
 
 using namespace std;
 
@@ -219,39 +220,50 @@ void * PuzzleSolver::runWorker1(void * _arg) {
 	*ret = worker.run() ? 1 : 0;
 	if (*ret)
 		arg->ret = worker.getSolution();
-	pthread_exit((void *) ret);
+	return (void*)ret;
 }
 
+#define NUMTHREADS 4
 
 void PuzzleSolver::solveMultyThread(int threadCount) {
+	/*if(threadCount!=NUMTHREADS)
+		throw 10;*/
 	printf("Multy thread solving with thread count = %d\n", threadCount);
 	std::list<Path> list;
 	findStartingPositions(this->puzzle, threadCount, list);
 	initialMovesEstimate = movesRequired = h(this->puzzle);
 	int numElements = list.size();
 	std::list<Path>::iterator pp = list.begin();
+
 	while (!solved) {
-		pthread_t* threads = new pthread_t[numElements];
+		//pthread_t* threads = new pthread_t[numElements];
+		int* results=new int[numElements];
 		printf("Searching paths of length %d moves\n", movesRequired);
 		std::list<Path>::iterator it = list.begin();
 		PTHREAD_ARG* args = new PTHREAD_ARG[numElements];
-		for (int i = 0; i < numElements; i++, ++it) {
-			Path node(*it);
+#pragma omp parallel for num_threads(8)
+		for (int i = 0; i < numElements; i++) {
+			//++it;
+			Path node(*it++);
 			args[i] = new THREAD_ARG;
 			args[i]->movesRequired = movesRequired;
 			args[i]->node = node;
-			pthread_t thr;
-			printf("Start thread with initial path %s\n", node.getPath().c_str());
-			pthread_create(&thr, NULL, &PuzzleSolver::runWorker1,
+
+			//pthread_t thr;
+			//printf("Start thread with initial path %s\n", node.getPath().c_str());
+			/*pthread_create(&thr, NULL, &PuzzleSolver::runWorker1,
 					(void*) args[i]);
-			threads[i] = thr;
+			threads[i] = thr;*/
+			printf("Thread %d started\n", omp_get_thread_num());
+			results[i]=*(int*)PuzzleSolver::runWorker1((void*)args[i]);
 		}
 		for (int i = 0; i < numElements; i++) {
-			void * ret=0;
-			if (int l = pthread_join(threads[i], &ret)) {
+			//void * ret=0;
+			/*if (int l = pthread_join(threads[i], &ret)) {
 				printf("Error thread join: %d\n", l);
-			}
-			if (*(int *) ret) {
+			}*/
+
+			if (results[i]) {
 				printf("Set solved flag in main thread. Iteration: %d\n",
 						movesRequired);
 				solved = true;
@@ -260,8 +272,8 @@ void PuzzleSolver::solveMultyThread(int threadCount) {
 			delete args[i];
 
 		}
-		delete [] threads;
 		delete [] args;
+		delete [] results;
 		if (!solved) {
 			movesRequired += 2;
 		}
