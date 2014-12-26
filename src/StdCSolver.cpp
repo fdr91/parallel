@@ -1,32 +1,50 @@
 /*
- * PuzzleSolver.cpp
+ * StdCSolver.cpp
  *
  *  Created on: Dec 19, 2014
  *      Author: fedor
  */
 
-#include "PuzzleSolver.h"
+#include "StdCSolver.h"
 #include <stdexcept>
 #include <fstream>
 #include <map>
 #include "Worker.h"
 #include <time.h>
+#include <unistd.h>
 
 using namespace std;
 
-int PuzzleSolver::tilePositions[] = { -1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5,
+int StdCSolver::tilePositions[] = { -1, 0, 0, 1, 2, 1, 2, 0, 1, 3, 4, 2, 3, 5,
 		4, 5 };
-int PuzzleSolver::tileSubsets[] = { -1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1,
+int StdCSolver::tileSubsets[] = { -1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1,
 		2, 2 };
-char PuzzleSolver::costTable_15_puzzle_0[4096];
-char PuzzleSolver::costTable_15_puzzle_1[16777216];
-char PuzzleSolver::costTable_15_puzzle_2[16777216];
+char StdCSolver::costTable_15_puzzle_0[4096];
+char StdCSolver::costTable_15_puzzle_1[16777216];
+char StdCSolver::costTable_15_puzzle_2[16777216];
+std::queue<Path> StdCSolver::q;
+std::mutex StdCSolver::qMutex;
+std::mutex StdCSolver::pMutex;
+bool StdCSolver::solved;
+int  StdCSolver::movesRequired;
+std::mutex StdCSolver::m;
+std::unique_lock<std::mutex> StdCSolver::cond_lock;
+std::condition_variable StdCSolver::cond_var;
+std::mutex StdCSolver::m1;
+std::unique_lock<std::mutex> StdCSolver::cond_lock1;
+std::condition_variable StdCSolver::cond_var1;
+bool StdCSolver::notified1;
+bool StdCSolver::notified;
+std::list<Path> StdCSolver::list;
+std::list<Path>::iterator StdCSolver::it;
+
+Path StdCSolver::path;
 
 
-bool PuzzleSolver::getSolved() {
+bool StdCSolver::getSolved() {
 	return solved;
 }
-int PuzzleSolver::h(BoardState& bs) {
+int StdCSolver::h(BoardState& bs) {
 	int64_t boardConfig = bs.getLong();
 	int index0 = 0, index1 = 0, index2 = 0;
 	for (int pos = 16 - 1; pos >= 0; --pos) {
@@ -50,21 +68,21 @@ int PuzzleSolver::h(BoardState& bs) {
 	+ costTable_15_puzzle_2[index2];
 }
 
-Path PuzzleSolver::getPath() {
+Path StdCSolver::getPath() {
 	return this->path;
 }
-void PuzzleSolver::setPath(Path& p) {
+void StdCSolver::setPath(Path& p) {
 	this->path = p;
 }
 
-PuzzleSolver::PuzzleSolver() {
+StdCSolver::StdCSolver() {
 	initialMovesEstimate = 0;
 	movesRequired = 0;
 	threadCount = -1;
 	solved = false;
 }
 
-void PuzzleSolver::reset(const char* _p) {
+void StdCSolver::reset(const char* _p) {
 	BoardState p(_p);
 	initialMovesEstimate = 0;
 	movesRequired = 0;
@@ -74,7 +92,7 @@ void PuzzleSolver::reset(const char* _p) {
 	state = BoardState(p);
 }
 
-PuzzleSolver::PuzzleSolver(const std::string &_p) {
+StdCSolver::StdCSolver(const std::string &_p) {
 	BoardState p(_p);
 	initialMovesEstimate = 0;
 	movesRequired = 0;
@@ -84,7 +102,7 @@ PuzzleSolver::PuzzleSolver(const std::string &_p) {
 	state = BoardState(p);
 }
 
-void PuzzleSolver::solveSingleThread() {
+void StdCSolver::solveSingleThread() {
 	initialMovesEstimate = movesRequired = h(this->puzzle);
 	Worker worker;
 	do {
@@ -102,12 +120,12 @@ void PuzzleSolver::solveSingleThread() {
 	}while (!solved);
 }
 
-void PuzzleSolver::completeBFS(Path& currentNode) {
+void StdCSolver::completeBFS(Path& currentNode) {
 	this->path = Path(currentNode);
 	this->solved = true;
 }
 
-void PuzzleSolver::putToQueue(Path* path, map<int64_t, Path>* m,
+void StdCSolver::putToQueue(Path* path, map<int64_t, Path>* m,
 		std::list<Path>& list) {
 	int64_t hash = path->stateAsL();
 	map<int64_t, Path>::iterator it = m->find(hash);
@@ -121,8 +139,7 @@ void PuzzleSolver::putToQueue(Path* path, map<int64_t, Path>* m,
 	}
 }
 
-void PuzzleSolver::findStartingPositions(BoardState& state,
-		size_t tc, std::list<Path> &list) {
+void StdCSolver::findStartingPositions(BoardState& state, size_t tc, std::list<Path> &list) {
 	Path currentNode(state);
 	map<int64_t, Path> m;
 	if (currentNode.isSolved()) {
@@ -210,8 +227,8 @@ void PuzzleSolver::findStartingPositions(BoardState& state,
 
 
 
-void * PuzzleSolver::runWorker1(void * _arg) {
-	PTHREAD_ARG arg = (THREAD_ARG*) _arg;
+void * StdCSolver::runWorker1(void * _arg) {
+	PTHREAD_ARG1 arg = (THREAD_ARG1*) _arg;
 	Worker worker;
 	worker.setConfig(arg->node,	arg->movesRequired);
 
@@ -219,58 +236,109 @@ void * PuzzleSolver::runWorker1(void * _arg) {
 	*ret = worker.run() ? 1 : 0;
 	if (*ret)
 		arg->ret = worker.getSolution();
-	pthread_exit((void *) ret);
+	return ret;
+}
+
+int StdCSolver::runWorker1(Path node, int movesRequired, string* retStr) {
+	Worker worker;
+	worker.setConfig(node,	movesRequired);
+
+	int ret = worker.run() ? 1 : 0;
+	if (ret)
+		*retStr = worker.getSolution();
+	return ret;
+}
+int workC=0;
+bool notified1=false;
+//TODO
+void  StdCSolver::poolFunction() {
+
+	string* str=new string;
+	Path p;
+	while (!notified) {  // loop to avoid spurious wakeups
+		cond_var1.wait(cond_lock);
+	}
+	while(!solved) {
+		//cond_var.wait(cond_lock);
+		while (!notified) {  // loop to avoid spurious wakeups
+		      cond_var.wait(cond_lock);
+		}
+		bool f=false;
+		qMutex.lock();
+		if(it!=list.end()) {
+			p = (*(it++));
+			f=true;
+		}
+		qMutex.unlock();
+		if(f){
+			workC++;
+			int ret = runWorker1(p, movesRequired,  str);
+			if(ret){
+				pMutex.lock();
+				if(!solved){
+					printf("Found result: %s, length: %d\n", str->c_str(), (int)str->length());
+					solved=true;
+					path.setPath(*str);
+				} else {
+					if(path.getPath().length()>str->length()){
+						path.setPath(*str);
+						printf("Found result: %s, length: %d\n", str->c_str(), (int)str->length());
+					}
+				}
+				pMutex.unlock();
+			}
+			workC--;
+			if(workC==0)
+				cond_var1.notify_all();
+		} else {
+			cond_var1.notify_all();
+		}
+	}
+	return;
 }
 
 
-void PuzzleSolver::solveMultyThread(int threadCount) {
-	printf("Multy thread solving with thread count = %d\n", threadCount);
-	std::list<Path> list;
+
+void StdCSolver::solveMultyThread(int threadCount) {
+
+
+
 	findStartingPositions(this->puzzle, threadCount, list);
+
+
+
 	initialMovesEstimate = movesRequired = h(this->puzzle);
-	int numElements = list.size();
-	std::list<Path>::iterator pp = list.begin();
-	while (!solved) {
-		pthread_t* threads = new pthread_t[numElements];
+	cond_lock = std::unique_lock<std::mutex>(this->m);
+	cond_lock1 = std::unique_lock<std::mutex>(this->m1);
+	for(int i=0; i<threadCount; i++)
+		this->threadPool.push_back(std::thread(poolFunction));
+	notified=false;
+	cond_var1.notify_all();
+	while(!solved){
+		qMutex.lock();
+		it=list.begin();
+		qMutex.unlock();
+		notified=true;
+		cond_var.notify_all();
 		printf("Searching paths of length %d moves\n", movesRequired);
-		std::list<Path>::iterator it = list.begin();
-		PTHREAD_ARG* args = new PTHREAD_ARG[numElements];
-		for (int i = 0; i < numElements; i++, ++it) {
-			Path node(*it);
-			args[i] = new THREAD_ARG;
-			args[i]->movesRequired = movesRequired;
-			args[i]->node = node;
-			pthread_t thr;
-			printf("Start thread with initial path %s\n", node.getPath().c_str());
-
-			pthread_create(&thr, NULL, &PuzzleSolver::runWorker1,
-					(void*) args[i]);
-			threads[i] = thr;
-		}
-		for (int i = 0; i < numElements; i++) {
-			void * ret=0;
-			if (int l = pthread_join(threads[i], &ret)) {
-				printf("Error thread join: %d\n", l);
-			}
-			if (*(int *) ret) {
-				printf("Set solved flag in main thread. Iteration: %d\n",
-						movesRequired);
-				solved = true;
-				this->path.setPath(args[i]->ret);
-			}
-			delete args[i];
-
-		}
-		delete [] threads;
-		delete [] args;
+		cond_var1.wait(cond_lock1);
 		if (!solved) {
 			movesRequired += 2;
 		}
 	}
+	printf("End work\n");
+	for(std::vector<std::thread>::iterator it = threadPool.begin(); it!=threadPool.end(); it++){
+		if(!(*it).joinable())
+			printf("The thread isn't joinable\n");
+		else
+			(*it).join();
+	}
+	printf("Exit");
 }
 
-void PuzzleSolver::solve(int t) {
+void StdCSolver::solve(int t) {
 	setInitial();
+
 	if (t >1)
 		solveMultyThread(t);
 	else if (t==1){
@@ -280,7 +348,7 @@ void PuzzleSolver::solve(int t) {
 	}
 }
 
-void PuzzleSolver::loadStreamCostTable(const string& filename, char* costTable,
+void StdCSolver::loadStreamCostTable(const string& filename, char* costTable,
 		int size) {
 
 	ifstream is(filename);
@@ -294,7 +362,8 @@ void PuzzleSolver::loadStreamCostTable(const string& filename, char* costTable,
 	is.close();
 }
 
-void PuzzleSolver::setInitial() {
+void StdCSolver::setInitial() {
+
 	solved = state.isGoal();
 	loadStreamCostTable(string("databases/15-puzzle-663-0.db"),
 			costTable_15_puzzle_0, 4096);
@@ -305,7 +374,7 @@ void PuzzleSolver::setInitial() {
 
 }
 
-PuzzleSolver::~PuzzleSolver() {
+StdCSolver::~StdCSolver() {
 	printf("Destruct PS\n");
 }
 

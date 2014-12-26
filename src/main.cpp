@@ -4,20 +4,19 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-
+#include "StdCSolver.h"
 
 
 int main(int argc, char** argv) {
 	try{
 		std::string initial(argv[2]);
-		PuzzleSolver ps(initial);
-		ps.solve(/*atoi(argv[1])*/7);
+		StdCSolver ps(initial);
+		clock_t cl = clock();
+		ps.solve(atoi(argv[1]));
 		Path pp = ps.getPath();
-		/*std::vector<std::string> vector = pp.getDirections(initial);
-		for (size_t i=0; i<vector.size(); i++) {
-			printf("%s\n", vector.at(i).c_str());
-		}*/
-		//std::string pstr = pp.getPath();
+		cl =  clock() - cl;
+		printf("Time elapsed: %f ms\n", (double)cl*1000/CLOCKS_PER_SEC);
+		std::string pstr = pp.getPath();
 		if(Path::checkPath(initial, pp.getPath())){
 			printf("Path:\n %s\nIs solution for %s with length %lu\n", pp.getPath().c_str(), initial.c_str(), pp.getPath().length());
 		} else {

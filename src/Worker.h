@@ -9,29 +9,33 @@
 #define WORKER_H_
 #include "BoardState.h"
 #include "Path.h"
-#include "PuzzleSolver.h"
+#include "StdCSolver.h"
+#include <unordered_map>
+#include <mutex>
 
 class Worker {
+
 	BoardState currentState;
-	PuzzleSolver *parrent;
 	Path path;
 	int depth;
 	int pos;
 	bool solved;
 	char fromDirection;
-	bool terminationFlag=false;
-	//std::string startPath;
 	int startIndex;
 	std::string finalize(std::string p);
 
+
+
 public:
+	static int terminationFlag;
+	static std::mutex term;
+	static void cleanMap();
 	Worker();
-	//bool run(std::string* retval);
 	int isSolved();
 	std::string getSolution();
 	void depthFirstSearch(BoardState currentState,
 			const char fromDirection, const int depth, const int pos);
-	Worker(PuzzleSolver* parrent);
+	Worker(StdCSolver* parrent);
 	void setConfig(Path& path, int depth);
 	bool run();
 	virtual ~Worker();
