@@ -2,11 +2,10 @@
 #include <stdio.h>
 #include <algorithm>
 
-//extern pthread_mutex_t running_mutex;
-
+bool Worker::terminationFlag=false;
 
 Worker::Worker() {
-	startIndex=0;
+	startIndex = 0;
 	this->parrent = NULL;
 	this->depth = -1;
 	this->pos = -1;
@@ -16,7 +15,7 @@ Worker::Worker() {
 }
 
 Worker::Worker(PuzzleSolver *parrent) {
-	startIndex=0;
+	startIndex = 0;
 	this->depth = -1;
 	this->pos = -1;
 	this->solved = false;
@@ -25,11 +24,10 @@ Worker::Worker(PuzzleSolver *parrent) {
 
 }
 
-
 void Worker::setConfig(Path& path, int depth) {
 	this->currentState = path.getState();
 	this->depth = depth;
-	this->pos = path.getPath().length()-1;
+	this->pos = path.getPath().length() - 1;
 	this->solved = currentState.isGoal();
 	this->path = path;
 	this->fromDirection = path.getDirection();
@@ -39,15 +37,15 @@ int Worker::isSolved() {
 	return this->solved && !terminationFlag ? 1 : 0;
 }
 
-std::string Worker::getSolution(){
+std::string Worker::getSolution() {
 	return this->path.getPath();
 }
 
 bool Worker::run() {
 	depthFirstSearch(currentState, fromDirection, depth, pos);
-	bool ret=false;
+	bool ret = false;
 	if (solved && !terminationFlag) {
-		std::string finalPath=finalize(path.getPath());
+		std::string finalPath = finalize(path.getPath());
 		this->path.setPath(finalPath);
 		ret = solved;
 	}
@@ -55,35 +53,31 @@ bool Worker::run() {
 
 }
 
-
-std::string Worker::finalize(std::string _p){
+std::string Worker::finalize(std::string _p) {
 	std::string p(_p);
-	int endIndex=0;
-	if(*(p.end()-1)=='X')
-		endIndex=-2;
-	std::string ret = p.substr(startIndex, p.length()-endIndex);
-	if(*(p.begin())=='X')
+	int endIndex = 0;
+	if (*(p.end() - 1) == 'X')
+		endIndex = -2;
+	std::string ret = p.substr(startIndex, p.length() - endIndex);
+	if (*(p.begin()) == 'X')
 		p.erase(p.begin());
 	std::reverse(ret.begin(), ret.end());
-	if(startIndex>1)
-		ret=p.substr(0, startIndex-2)+ret;
+	if (startIndex > 1)
+		ret = p.substr(0, startIndex - 2) + ret;
 
 	printf("%s\n", ret.c_str());
 	return ret;
 }
 
-
 void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 		const int depth, const int pos) {
-	if (parrent!=NULL && parrent->getSolved())
+	if (parrent != NULL && parrent->getSolved())
 		return;
 	this->startIndex = path.getPath().length();
 	if (currentState.isGoal()) {
-			solved = true;
-			path.append(fromDirection);
-			printf("Solved\n");
-		if (!solved)
-			this->terminationFlag = true;
+		solved = true;
+		path.append(fromDirection);
+		printf("Solved\n");
 		return;
 	}
 
@@ -91,6 +85,7 @@ void Worker::depthFirstSearch(BoardState currentState, const char fromDirection,
 
 	if (fromDirection != 'R') {
 		BoardState successor = currentState.moveLeft();
+
 		if (successor.getLong() != 0) {
 			if (posPlusOne + PuzzleSolver::h(successor) <= depth) {
 				depthFirstSearch(successor, 'L', depth, posPlusOne);

@@ -19,12 +19,13 @@ class Worker {
 	int pos;
 	bool solved;
 	char fromDirection;
-	bool terminationFlag=false;
+
 	//std::string startPath;
 	int startIndex;
 	std::string finalize(std::string p);
 
 public:
+	static bool terminationFlag;
 	Worker();
 	//bool run(std::string* retval);
 	int isSolved();
