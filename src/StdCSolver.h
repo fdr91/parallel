@@ -21,7 +21,9 @@
 class StdCSolver {
 	BoardState puzzle;
 	BoardState state;
-	int threadCount;
+	static int threadCount;
+	static int threadStarted;
+
 	static bool solved;
 	static char costTable_15_puzzle_0 [];
 	static char costTable_15_puzzle_1 [];
@@ -35,19 +37,18 @@ class StdCSolver {
 	static Path path;
 	std::vector<std::thread> threadPool;
 
-	static bool notified;
-	static std::mutex m;
-	static std::unique_lock<std::mutex> cond_lock;
-	static std::condition_variable cond_var;
 
-	static bool notified1;
-	static std::mutex m1;
-	static std::unique_lock<std::mutex> cond_lock1;
-	static std::condition_variable cond_var1;
+	static std::mutex poolThreadMutex;
+	static std::mutex mainThreadMutex;
+
+	static std::condition_variable poolThreadCV;
+	static std::condition_variable mainThreadCV;
+
+	static std::unique_lock<std::mutex> mainThreadLock;
+	static std::unique_lock<std::mutex> poolThreadLock;
 
 	static std::queue<Path> q;
 	static std::mutex qMutex;
-
 	static std::mutex pMutex;
 
 

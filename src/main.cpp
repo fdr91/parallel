@@ -1,5 +1,4 @@
 #include "BoardState.h"
-#include "PuzzleSolver.h"
 #include <string>
 #include <stdio.h>
 #include <sys/time.h>

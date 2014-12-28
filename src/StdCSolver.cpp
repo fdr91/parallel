@@ -27,16 +27,26 @@ std::mutex StdCSolver::qMutex;
 std::mutex StdCSolver::pMutex;
 bool StdCSolver::solved;
 int  StdCSolver::movesRequired;
-std::mutex StdCSolver::m;
-std::unique_lock<std::mutex> StdCSolver::cond_lock;
-std::condition_variable StdCSolver::cond_var;
-std::mutex StdCSolver::m1;
-std::unique_lock<std::mutex> StdCSolver::cond_lock1;
-std::condition_variable StdCSolver::cond_var1;
-bool StdCSolver::notified1;
-bool StdCSolver::notified;
+std::mutex StdCSolver::poolThreadMutex;
+std::mutex StdCSolver::mainThreadMutex;
+//std::unique_lock<std::mutex> StdCSolver::cond_lock;
+//std::condition_variable StdCSolver::cond_var;
+
+//std::unique_lock<std::mutex> StdCSolver::cond_lock1;
+//std::condition_variable StdCSolver::cond_var1;
+/*bool StdCSolver::notified1;
+bool StdCSolver::notified;*/
 std::list<Path> StdCSolver::list;
 std::list<Path>::iterator StdCSolver::it;
+
+std::condition_variable StdCSolver::poolThreadCV;
+std::condition_variable StdCSolver::mainThreadCV;
+
+std::unique_lock<std::mutex> StdCSolver::poolThreadLock;
+std::unique_lock<std::mutex> StdCSolver::mainThreadLock;
+
+int StdCSolver::threadCount;
+int StdCSolver::threadStarted;
 
 Path StdCSolver::path;
 
@@ -255,22 +265,20 @@ void  StdCSolver::poolFunction() {
 
 	string* str=new string;
 	Path p;
-	while (!notified) {  // loop to avoid spurious wakeups
-		cond_var1.wait(cond_lock);
-	}
+	pMutex.lock();
+	if(++threadStarted==threadCount)
+		mainThreadCV.notify_one();
+	pMutex.unlock();
 	while(!solved) {
-		//cond_var.wait(cond_lock);
-		while (!notified) {  // loop to avoid spurious wakeups
-		      cond_var.wait(cond_lock);
-		}
-		bool f=false;
+		poolThreadCV.wait(poolThreadLock);
+		bool queueNotEmpty=false;
 		qMutex.lock();
 		if(it!=list.end()) {
 			p = (*(it++));
-			f=true;
+			queueNotEmpty=true;
 		}
 		qMutex.unlock();
-		if(f){
+		if(queueNotEmpty){
 			workC++;
 			int ret = runWorker1(p, movesRequired,  str);
 			if(ret){
@@ -287,44 +295,43 @@ void  StdCSolver::poolFunction() {
 				}
 				pMutex.unlock();
 			}
-			workC--;
-			if(workC==0)
-				cond_var1.notify_all();
 		} else {
-			cond_var1.notify_all();
+			mainThreadCV.notify_one();
 		}
 	}
 	return;
 }
 
+void StdCSolver::solveMultyThread(int _threadCount) {
 
+	threadCount = _threadCount;
 
-void StdCSolver::solveMultyThread(int threadCount) {
-
-
-
-	findStartingPositions(this->puzzle, threadCount, list);
+	findStartingPositions(this->puzzle, _threadCount, list);
 
 
 
 	initialMovesEstimate = movesRequired = h(this->puzzle);
-	cond_lock = std::unique_lock<std::mutex>(this->m);
-	cond_lock1 = std::unique_lock<std::mutex>(this->m1);
-	for(int i=0; i<threadCount; i++)
+	mainThreadLock= std::unique_lock<std::mutex>(this->mainThreadMutex);
+	poolThreadLock= std::unique_lock<std::mutex>(this->poolThreadMutex);
+	qMutex.lock();
+	it=list.begin();
+	qMutex.unlock();
+	for(int i=0; i<_threadCount; i++)
 		this->threadPool.push_back(std::thread(poolFunction));
-	notified=false;
-	cond_var1.notify_all();
+	mainThreadCV.wait(mainThreadLock);
 	while(!solved){
-		qMutex.lock();
-		it=list.begin();
-		qMutex.unlock();
-		notified=true;
-		cond_var.notify_all();
+
+		poolThreadCV.notify_all();
+		//cond_var.notify_all();
 		printf("Searching paths of length %d moves\n", movesRequired);
-		cond_var1.wait(cond_lock1);
+		//cond_var1.wait(cond_lock1);
+		mainThreadCV.wait(mainThreadLock);
 		if (!solved) {
 			movesRequired += 2;
 		}
+		qMutex.lock();
+		it=list.begin();
+		qMutex.unlock();
 	}
 	printf("End work\n");
 	for(std::vector<std::thread>::iterator it = threadPool.begin(); it!=threadPool.end(); it++){
